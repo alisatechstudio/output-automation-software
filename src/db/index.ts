@@ -13,12 +13,14 @@ export function getLastDbError(): string | null {
   return lastDbError;
 }
 
+const ATLAS_DEFAULT_URI = 'mongodb+srv://Vercel-Admin-atlas-copper-notebook:BNp8pQVDocNKaDwL@atlas-copper-notebook.0czlcmy.mongodb.net/?retryWrites=true&w=majority';
+
 export async function initDatabase(
   uri = process.env.MONGODB_URI ||
     process.env.MONGODB_URL ||
     process.env.MONGO_URL ||
     (process.env.DATABASE_URL?.startsWith('mongodb') ? process.env.DATABASE_URL : '') ||
-    'mongodb://127.0.0.1:27017',
+    ATLAS_DEFAULT_URI,
   dbName = process.env.MONGODB_DB_NAME || 'news_automation'
 ): Promise<Db> {
   if (dbInstance) {

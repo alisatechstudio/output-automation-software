@@ -51,12 +51,14 @@ export interface OutputAppConfig {
 const rootDir = process.cwd();
 const dataDir = process.env.DATA_DIR || path.join(rootDir, 'data');
 
+const ATLAS_URI = 'mongodb+srv://Vercel-Admin-atlas-copper-notebook:BNp8pQVDocNKaDwL@atlas-copper-notebook.0czlcmy.mongodb.net/?retryWrites=true&w=majority';
+
 const resolvedMongoUri =
   process.env.MONGODB_URI ||
   process.env.MONGODB_URL ||
   process.env.MONGO_URL ||
   (process.env.DATABASE_URL?.startsWith('mongodb') ? process.env.DATABASE_URL : '') ||
-  'mongodb://127.0.0.1:27017';
+  ATLAS_URI;
 
 export const config: OutputAppConfig = {
   PORT: process.env.PORT ? parseInt(process.env.PORT, 10) : 3002,

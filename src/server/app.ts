@@ -461,5 +461,134 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
     }
   });
 
+  // Comprehensive Database-driven KPI Metrics
+  app.get('/api/kpi', async (_req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) {
+        return res.json({ success: false, message: 'Database not connected' });
+      }
+      const db = getDatabase();
+
+      const [
+        fbReelsTotal,
+        fbReelsSuccess,
+        ytShortsTotal,
+        ytShortsSuccess,
+        ttUploadsTotal,
+        tgUploadsTotal,
+        groupSharesTotal,
+        pagesCount,
+        channelsCount,
+        groupsCount,
+        configsCount,
+        newsArticlesCount,
+        clipsCount,
+        auditLogsCount,
+        facebookPages,
+        youtubeChannels,
+        facebookGroups,
+        gdriveConfigs,
+      ] = await Promise.all([
+        db.collection('reel_logs').countDocuments(),
+        db.collection('reel_logs').countDocuments({ status: 'success' }),
+        db.collection('youtube_upload_logs').countDocuments(),
+        db.collection('youtube_upload_logs').countDocuments({ status: 'success' }),
+        db.collection('tiktok_upload_logs').countDocuments(),
+        db.collection('telegram_upload_logs').countDocuments(),
+        db.collection('group_share_logs').countDocuments().catch(() => 0),
+        db.collection('facebook_pages').countDocuments(),
+        db.collection('youtube_channels').countDocuments(),
+        db.collection('facebook_groups').countDocuments(),
+        db.collection('gdrive_reel_configs').countDocuments(),
+        db.collection('news_articles').countDocuments(),
+        db.collection('clips').countDocuments().catch(() => 0),
+        db.collection('audit_log').countDocuments().catch(() => 0),
+        db.collection('facebook_pages').find({}).toArray(),
+        db.collection('youtube_channels').find({}).toArray(),
+        db.collection('facebook_groups').find({}).toArray(),
+        db.collection('gdrive_reel_configs').find({}).toArray(),
+      ]);
+
+      const totalPostedInConfigs = gdriveConfigs.reduce(
+        (acc: number, cur: any) => acc + (Array.isArray(cur.postedVideoIds) ? cur.postedVideoIds.length : 0),
+        0
+      );
+
+      res.json({
+        success: true,
+        kpi: {
+          publishing: {
+            grandTotal: fbReelsTotal + ytShortsTotal + ttUploadsTotal + tgUploadsTotal,
+            facebook: { total: fbReelsTotal, success: fbReelsSuccess },
+            youtube: { total: ytShortsTotal, success: ytShortsSuccess },
+            tiktok: { total: ttUploadsTotal },
+            telegram: { total: tgUploadsTotal },
+            groupShares: { total: groupSharesTotal },
+          },
+          infrastructure: {
+            facebookPagesCount: pagesCount,
+            youtubeChannelsCount: channelsCount,
+            facebookGroupsCount: groupsCount,
+            gdrivePipelinesCount: configsCount,
+            totalMemoryTrackedVideos: totalPostedInConfigs,
+            newsArticlesCount,
+            clipsCount,
+            auditLogsCount,
+          },
+          assets: {
+            facebookPages,
+            youtubeChannels,
+            facebookGroups,
+            gdriveConfigs,
+          },
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Assets direct endpoints
+  app.get('/api/facebook-pages', async (_req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.json({ success: true, pages: [] });
+      const pages = await getDatabase().collection('facebook_pages').find({}).toArray();
+      res.json({ success: true, count: pages.length, pages });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/youtube-channels', async (_req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.json({ success: true, channels: [] });
+      const channels = await getDatabase().collection('youtube_channels').find({}).toArray();
+      res.json({ success: true, count: channels.length, channels });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/facebook-groups', async (_req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.json({ success: true, groups: [] });
+      const groups = await getDatabase().collection('facebook_groups').find({}).toArray();
+      res.json({ success: true, count: groups.length, groups });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/news-articles', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.json({ success: true, articles: [] });
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+      const articles = await getDatabase().collection('news_articles').find({}).sort({ pubDate: -1, createdAt: -1 }).limit(limit).toArray();
+      res.json({ success: true, count: articles.length, articles });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   return app;
 }

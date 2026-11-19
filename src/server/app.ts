@@ -1,7 +1,9 @@
 import express, { Express, Request, Response } from 'express';
+import crypto from 'node:crypto';
 import { OutputPipelineService } from '../pipeline/output-pipeline.js';
-import { isDbConnected, getDatabase } from '../db/index.js';
+import { isDbConnected, getDatabase, initDatabase, getLastDbError } from '../db/index.js';
 import { config } from '../config/env.js';
+import { GDriveReelConfig } from '../db/schema.js';
 
 export function createOutputServer(pipeline: OutputPipelineService): Express {
   const app = express();
@@ -9,7 +11,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  app.get(['/', '/health', '/api', '/api/index', '/api/health'], (_req: Request, res: Response) => {
+  app.get(['/api/health', '/api/index', '/api'], (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       service: 'Output Automation (Google Drive -> Facebook / YouTube / TikTok / Telegram)',
@@ -45,24 +47,307 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
     }
   });
 
+  // Diagnostic report for system health & connected integrations
+  app.get('/api/diagnostics', async (_req: Request, res: Response) => {
+    try {
+      const dbConnected = isDbConnected();
+      const lastErr = getLastDbError();
+      const scanner = pipeline.getScanner();
+
+      let driveAuthMode = 'none';
+      if (config.GOOGLE_CLIENT_ID && config.GOOGLE_REFRESH_TOKEN) {
+        driveAuthMode = 'oauth2';
+      } else if (config.GOOGLE_DRIVE_API_KEY) {
+        driveAuthMode = 'api_key';
+      }
+
+      res.json({
+        success: true,
+        environment: {
+          nodeEnv: process.env.NODE_ENV || 'production',
+          isVercel: Boolean(process.env.VERCEL),
+          serverTime: new Date().toISOString(),
+        },
+        database: {
+          connected: dbConnected,
+          error: lastErr,
+          dbName: config.MONGODB_DB_NAME,
+        },
+        integrations: {
+          googleDrive: {
+            configured: Boolean(config.GDRIVE_FOLDER_ID),
+            folderId: config.GDRIVE_FOLDER_ID ? `${config.GDRIVE_FOLDER_ID.substring(0, 6)}...` : null,
+            authMode: driveAuthMode,
+            deleteAfterPosting: config.DELETE_AFTER_POSTING,
+          },
+          facebook: {
+            configured: Boolean(config.FACEBOOK_PAGE_ID && config.FACEBOOK_PAGE_ACCESS_TOKEN),
+            pageId: config.FACEBOOK_PAGE_ID ? `${config.FACEBOOK_PAGE_ID.substring(0, 4)}...` : null,
+            hasFirstComment: Boolean(config.DEFAULT_COMMENT_FORMAT),
+          },
+          youtube: {
+            configured: Boolean(config.YOUTUBE_AUTO_UPLOAD && config.YOUTUBE_REFRESH_TOKEN),
+            autoUpload: config.YOUTUBE_AUTO_UPLOAD,
+            hasRefreshToken: Boolean(config.YOUTUBE_REFRESH_TOKEN),
+          },
+          tiktok: {
+            configured: Boolean(config.TIKTOK_AUTO_UPLOAD && config.TIKTOK_ACCESS_TOKEN),
+            autoUpload: config.TIKTOK_AUTO_UPLOAD,
+          },
+          telegram: {
+            configured: Boolean(config.TELEGRAM_AUTO_UPLOAD && config.TELEGRAM_BOT_TOKEN),
+            autoUpload: config.TELEGRAM_AUTO_UPLOAD,
+            targetChatId: (config.TELEGRAM_CHAT_ID || config.TELEGRAM_CHANNEL_ID) ? `${(config.TELEGRAM_CHAT_ID || config.TELEGRAM_CHANNEL_ID)!.substring(0, 4)}...` : null,
+          },
+        },
+        scheduler: {
+          cronEnabled: config.CRON_ENABLED,
+          schedule: config.CRON_SCHEDULE,
+          dryRun: config.DRY_RUN,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Reconnect DB on-demand
+  app.post('/api/db/connect', async (_req: Request, res: Response) => {
+    try {
+      if (isDbConnected()) {
+        return res.json({ success: true, message: 'Database is already connected.' });
+      }
+      if (!config.MONGODB_URI) {
+        return res.status(400).json({ success: false, error: 'MONGODB_URI environment variable is not configured.' });
+      }
+      await initDatabase(config.MONGODB_URI, config.MONGODB_DB_NAME);
+      res.json({ success: true, message: 'Connected to MongoDB successfully!' });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Scan Google Drive folder
+  app.get('/api/scan', async (req: Request, res: Response) => {
+    try {
+      const folderInput = (req.query.folderId as string) || config.GDRIVE_FOLDER_ID;
+      if (!folderInput) {
+        return res.status(400).json({
+          success: false,
+          error: 'Please provide a Google Drive Folder ID or URL, or set GDRIVE_FOLDER_ID in environment.',
+        });
+      }
+
+      let postedIds: string[] = [];
+      const channelId = req.query.channelId as string;
+      if (channelId && isDbConnected()) {
+        const db = getDatabase();
+        const ch = await db.collection<any>('gdrive_reel_configs').findOne({ _id: channelId });
+        if (ch && Array.isArray(ch.postedVideoIds)) {
+          postedIds = ch.postedVideoIds;
+        }
+      }
+
+      const scanner = pipeline.getScanner();
+      const result = await scanner.scanFolder(folderInput, postedIds);
+      res.json({ success: true, scan: result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // List all channels / GDrive configs
   app.get('/api/channels', async (_req: Request, res: Response) => {
     try {
       if (!isDbConnected()) {
-        return res.json({ success: true, channels: [], message: 'Database not connected' });
+        return res.json({
+          success: true,
+          channels: [],
+          message: 'Database not connected. Configure MONGODB_URI in Vercel to persist channel configurations.',
+        });
       }
       const db = getDatabase();
-      const channels = await db.collection('gdrive_reel_configs').find({}).toArray();
+      const channels = await db.collection<any>('gdrive_reel_configs').find({}).sort({ updatedAt: -1 }).toArray();
       res.json({ success: true, count: channels.length, channels });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
   });
 
+  // Create new channel / GDrive config
+  app.post('/api/channels', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) {
+        return res.status(400).json({
+          success: false,
+          error: 'MongoDB is not connected. Add MONGODB_URI in Vercel Environment Variables to save configs.',
+        });
+      }
+
+      const body = req.body || {};
+      const folderRaw = body.folderUrlOrId || body.folderId || '';
+      const scanner = pipeline.getScanner();
+      const folderId = scanner.extractFolderId(folderRaw);
+
+      if (!folderId) {
+        return res.status(400).json({ success: false, error: 'A valid Google Drive folder URL or ID is required.' });
+      }
+
+      const newId = body._id || `channel_${crypto.randomUUID().substring(0, 8)}`;
+      const now = new Date();
+
+      const newChannel = {
+        _id: newId,
+        name: body.name || `Folder ${folderId.substring(0, 8)}`,
+        folderUrlOrId: folderRaw,
+        folderId,
+        apiKey: body.apiKey || '',
+        pageId: body.pageId || config.FACEBOOK_PAGE_ID || '',
+        pageName: body.pageName || '',
+        youtubeChannelId: body.youtubeChannelId || '',
+        autoPostYouTube: body.autoPostYouTube ?? config.YOUTUBE_AUTO_UPLOAD,
+        autoPostTikTok: body.autoPostTikTok ?? config.TIKTOK_AUTO_UPLOAD,
+        tiktokAccessToken: body.tiktokAccessToken || '',
+        autoPostTelegram: body.autoPostTelegram ?? config.TELEGRAM_AUTO_UPLOAD,
+        telegramChannelId: body.telegramChannelId || config.TELEGRAM_CHAT_ID || config.TELEGRAM_CHANNEL_ID || '',
+        postStory: Boolean(body.postStory),
+        shareToGroups: Boolean(body.shareToGroups),
+        sourceId: body.sourceId || '',
+        isActive: body.isActive !== false,
+        scheduleIntervalHours: Number(body.scheduleIntervalHours) || 2,
+        cronExpression: body.cronExpression || '',
+        category: body.category || '',
+        customHashtags: body.customHashtags || '',
+        captionStrategy: body.captionStrategy || 'viral_hashtags',
+        customCaption: body.customCaption || '',
+        firstCommentText: body.firstCommentText || '',
+        orderStrategy: body.orderStrategy || config.ORDER_STRATEGY || 'oldest_first',
+        deleteAfterPosting: body.deleteAfterPosting ?? config.DELETE_AFTER_POSTING,
+        deleteAction: body.deleteAction || 'trash',
+        postedVideoIds: [],
+        postedVideoNames: [],
+        lastPostedAt: null,
+        lastPostedFile: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const db = getDatabase();
+      await db.collection<any>('gdrive_reel_configs').insertOne(newChannel);
+
+      res.status(201).json({ success: true, channel: newChannel });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Update channel
+  app.put('/api/channels/:id', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) {
+        return res.status(400).json({ success: false, error: 'Database not connected' });
+      }
+
+      const id = req.params.id;
+      const body = { ...req.body };
+      delete body._id;
+      body.updatedAt = new Date();
+
+      if (body.folderUrlOrId) {
+        const scanner = pipeline.getScanner();
+        body.folderId = scanner.extractFolderId(body.folderUrlOrId);
+      }
+
+      const db = getDatabase();
+      const result = await db.collection<any>('gdrive_reel_configs').updateOne(
+        { _id: id },
+        { $set: body }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ success: false, error: `Channel ${id} not found.` });
+      }
+
+      const updated = await db.collection<any>('gdrive_reel_configs').findOne({ _id: id });
+      res.json({ success: true, channel: updated });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Toggle channel active status
+  app.patch('/api/channels/:id/toggle', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) {
+        return res.status(400).json({ success: false, error: 'Database not connected' });
+      }
+
+      const id = req.params.id;
+      const db = getDatabase();
+      const ch = await db.collection<any>('gdrive_reel_configs').findOne({ _id: id });
+      if (!ch) {
+        return res.status(404).json({ success: false, error: 'Channel not found' });
+      }
+
+      const newStatus = !ch.isActive;
+      await db.collection<any>('gdrive_reel_configs').updateOne(
+        { _id: id },
+        { $set: { isActive: newStatus, updatedAt: new Date() } }
+      );
+
+      res.json({ success: true, isActive: newStatus });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Reset posted IDs history for a channel
+  app.post('/api/channels/:id/reset-posted', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) {
+        return res.status(400).json({ success: false, error: 'Database not connected' });
+      }
+
+      const id = req.params.id;
+      const db = getDatabase();
+      await db.collection<any>('gdrive_reel_configs').updateOne(
+        { _id: id },
+        { $set: { postedVideoIds: [], postedVideoNames: [], updatedAt: new Date() } }
+      );
+
+      res.json({ success: true, message: 'Posted video memory reset for this channel.' });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Delete channel
+  app.delete('/api/channels/:id', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) {
+        return res.status(400).json({ success: false, error: 'Database not connected' });
+      }
+
+      const id = req.params.id;
+      const db = getDatabase();
+      const result = await db.collection<any>('gdrive_reel_configs').deleteOne({ _id: id });
+      res.json({ success: true, deleted: result.deletedCount > 0 });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Get publication logs across platforms
   app.get('/api/logs', async (req: Request, res: Response) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 30;
       if (!isDbConnected()) {
-        return res.json({ success: true, logs: [], message: 'Database not connected' });
+        return res.json({
+          success: true,
+          logs: { facebook: [], youtube: [], tiktok: [], telegram: [] },
+          counts: { facebook: 0, youtube: 0, tiktok: 0, telegram: 0 },
+          message: 'Database not connected',
+        });
       }
       const db = getDatabase();
       const [facebookLogs, youtubeLogs, tiktokLogs, telegramLogs] = await Promise.all([
@@ -92,12 +377,14 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
     }
   });
 
+  // Get status & lifetime metrics
   app.get('/api/status', async (_req: Request, res: Response) => {
     try {
       let publishedReelsCount = 0;
       let youtubeCount = 0;
       let tiktokCount = 0;
       let telegramCount = 0;
+      let channelsCount = 0;
 
       if (isDbConnected()) {
         const db = getDatabase();
@@ -105,6 +392,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
         youtubeCount = await db.collection('youtube_upload_logs').countDocuments();
         tiktokCount = await db.collection('tiktok_upload_logs').countDocuments();
         telegramCount = await db.collection('telegram_upload_logs').countDocuments();
+        channelsCount = await db.collection('gdrive_reel_configs').countDocuments();
       }
 
       res.json({
@@ -115,13 +403,22 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
           youtube: youtubeCount,
           tiktok: tiktokCount,
           telegram: telegramCount,
+          total: publishedReelsCount + youtubeCount + tiktokCount + telegramCount,
         },
+        channelsCount,
         config: {
           cronEnabled: config.CRON_ENABLED,
           cronSchedule: config.CRON_SCHEDULE,
           deleteAfterPosting: config.DELETE_AFTER_POSTING,
           orderStrategy: config.ORDER_STRATEGY,
           dryRun: config.DRY_RUN,
+          driveFolderConfigured: Boolean(config.GDRIVE_FOLDER_ID),
+          platformsEnabled: {
+            facebook: Boolean(config.FACEBOOK_PAGE_ID && config.FACEBOOK_PAGE_ACCESS_TOKEN),
+            youtube: Boolean(config.YOUTUBE_AUTO_UPLOAD && config.YOUTUBE_REFRESH_TOKEN),
+            tiktok: Boolean(config.TIKTOK_AUTO_UPLOAD && config.TIKTOK_ACCESS_TOKEN),
+            telegram: Boolean(config.TELEGRAM_AUTO_UPLOAD && config.TELEGRAM_BOT_TOKEN),
+          },
         },
       });
     } catch (err: any) {

@@ -1,4 +1,4 @@
-import { initDatabase } from '../src/db/index.js';
+import { initDatabase, isDbConnected } from '../src/db/index.js';
 import { OutputPipelineService } from '../src/pipeline/output-pipeline.js';
 import { createOutputServer } from '../src/server/app.js';
 import { config } from '../src/config/env.js';
@@ -7,15 +7,15 @@ let cachedApp: any = null;
 
 export default async function handler(req: any, res: any) {
   try {
-    if (!cachedApp) {
-      if (process.env.MONGODB_URI) {
-        try {
-          await initDatabase(process.env.MONGODB_URI, process.env.MONGODB_DB_NAME || 'news_automation');
-        } catch (dbErr: any) {
-          console.warn('[Vercel Output API] MongoDB connection note:', dbErr.message);
-        }
+    if (process.env.MONGODB_URI && !isDbConnected()) {
+      try {
+        await initDatabase(process.env.MONGODB_URI, process.env.MONGODB_DB_NAME || 'news_automation');
+      } catch (dbErr: any) {
+        console.warn('[Vercel Output API] MongoDB connection note:', dbErr.message);
       }
+    }
 
+    if (!cachedApp) {
       const pipeline = new OutputPipelineService();
       cachedApp = createOutputServer(pipeline);
     }

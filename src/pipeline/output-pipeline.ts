@@ -64,6 +64,18 @@ export class OutputPipelineService {
     this.telegramPublisher = new TelegramPublisher();
   }
 
+  public getScanner(): GoogleDriveScanner {
+    return this.scanner;
+  }
+
+  public getFbClient(): FacebookGraphClient {
+    return this.fbClient;
+  }
+
+  public getTelegramPublisher(): TelegramPublisher {
+    return this.telegramPublisher;
+  }
+
   public async runOutputCron(options?: {
     channelId?: string;
     folderId?: string;

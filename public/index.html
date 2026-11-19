@@ -1,61 +1,1149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Output Automation Service</title>
+  <title>Output Automation — Operations & Control Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef6ff',
+              100: '#d9eaff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            dark: {
+              base: '#090d16',
+              surface: '#0f172a',
+              card: '#131e33',
+              border: '#1e293b',
+              hover: '#1e2d4a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #0d1117;
-      color: #c9d1d9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #080c14;
+      color: #e2e8f0;
     }
-    .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      padding: 32px;
-      border-radius: 8px;
-      max-width: 480px;
-      text-align: center;
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
     }
-    h1 {
-      color: #58a6ff;
-      margin-top: 0;
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
     }
-    p {
-      color: #8b949e;
-      font-size: 14px;
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
     }
-    .status {
-      display: inline-block;
-      padding: 4px 12px;
-      background: #238636;
-      color: #ffffff;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 16px;
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
     }
-    a {
-      color: #58a6ff;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #475569;
     }
   </style>
 </head>
-<body>
-  <div class="card">
-    <div class="status">ONLINE</div>
-    <h1>⚡ Output Automation</h1>
-    <p>Stage 2 Microservice: Google Drive Folder &rarr; Facebook / YouTube / TikTok / Telegram</p>
-    <p><a href="/health">View Health API</a></p>
+<body class="min-h-screen flex flex-col custom-scrollbar text-sm selection:bg-blue-600 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-dark-border bg-dark-surface/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand & Mode -->
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-bold text-lg">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-base tracking-tight text-white">Output Automation</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Vercel Serverless</span>
+          </div>
+          <p class="text-xs text-slate-400">Google Drive &rarr; Facebook &bull; YouTube &bull; TikTok &bull; Telegram</p>
+        </div>
+      </div>
+
+      <!-- Live Status & Global Actions -->
+      <div class="flex items-center space-x-3">
+        <!-- DB Status Badge -->
+        <div id="dbStatusBadge" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-slate-700 bg-slate-800/60 text-slate-400">
+          <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="dbStatusText">Checking DB...</span>
+        </div>
+
+        <!-- Refresh Button -->
+        <button id="btnRefresh" onclick="loadAllData()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Refresh Dashboard">
+          <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+
+        <!-- Trigger Pipeline Button -->
+        <button id="btnTriggerPipeline" onclick="runOutputPipeline()" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-md shadow-blue-500/25 active:scale-95 transition text-xs">
+          <svg id="triggerIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span id="triggerText">Run Pipeline Now</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+      <!-- Lifetime Total -->
+      <div class="col-span-2 sm:col-span-1 bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400">
+          <span class="text-xs font-semibold uppercase tracking-wider">Total Published</span>
+          <span class="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </span>
+        </div>
+        <div class="mt-3">
+          <span id="statTotalPublished" class="text-2xl font-bold text-white tracking-tight">0</span>
+          <p class="text-[11px] text-slate-400 mt-0.5">Across all 4 networks</p>
+        </div>
+      </div>
+
+      <!-- Facebook Reels -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400">
+          <span class="text-xs font-semibold uppercase tracking-wider">Facebook</span>
+          <span id="badgeFbStatus" class="w-2.5 h-2.5 rounded-full bg-slate-600" title="Facebook Status"></span>
+        </div>
+        <div class="mt-3">
+          <span id="statFbPublished" class="text-2xl font-bold text-blue-400 tracking-tight">0</span>
+          <p class="text-[11px] text-slate-400 mt-0.5">Reels + 1st Comment</p>
+        </div>
+      </div>
+
+      <!-- YouTube Shorts -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400">
+          <span class="text-xs font-semibold uppercase tracking-wider">YouTube</span>
+          <span id="badgeYtStatus" class="w-2.5 h-2.5 rounded-full bg-slate-600" title="YouTube Status"></span>
+        </div>
+        <div class="mt-3">
+          <span id="statYtPublished" class="text-2xl font-bold text-red-400 tracking-tight">0</span>
+          <p class="text-[11px] text-slate-400 mt-0.5">Shorts Uploaded</p>
+        </div>
+      </div>
+
+      <!-- TikTok -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400">
+          <span class="text-xs font-semibold uppercase tracking-wider">TikTok</span>
+          <span id="badgeTtStatus" class="w-2.5 h-2.5 rounded-full bg-slate-600" title="TikTok Status"></span>
+        </div>
+        <div class="mt-3">
+          <span id="statTtPublished" class="text-2xl font-bold text-cyan-400 tracking-tight">0</span>
+          <p class="text-[11px] text-slate-400 mt-0.5">Posts Shared</p>
+        </div>
+      </div>
+
+      <!-- Telegram -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400">
+          <span class="text-xs font-semibold uppercase tracking-wider">Telegram</span>
+          <span id="badgeTgStatus" class="w-2.5 h-2.5 rounded-full bg-slate-600" title="Telegram Status"></span>
+        </div>
+        <div class="mt-3">
+          <span id="statTgPublished" class="text-2xl font-bold text-sky-400 tracking-tight">0</span>
+          <p class="text-[11px] text-slate-400 mt-0.5">Broadcasts Sent</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-dark-border flex space-x-2 sm:space-x-4">
+      <button onclick="switchTab('channels')" id="tabBtn-channels" class="tab-button pb-3 px-1 text-sm font-semibold border-b-2 border-blue-500 text-blue-400 flex items-center space-x-2">
+        <span>📂 Folder & Channel Mappings</span>
+        <span id="tabBadgeChannels" class="text-xs px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300">0</span>
+      </button>
+
+      <button onclick="switchTab('queue')" id="tabBtn-queue" class="tab-button pb-3 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+        <span>🔍 Drive Queue Inspector</span>
+      </button>
+
+      <button onclick="switchTab('logs')" id="tabBtn-logs" class="tab-button pb-3 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+        <span>📜 Publication Audit Logs</span>
+      </button>
+
+      <button onclick="switchTab('diagnostics')" id="tabBtn-diagnostics" class="tab-button pb-3 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+        <span>⚙️ Diagnostics & Environment</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: Channels & Folders Management -->
+    <div id="tabContent-channels" class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-white">Configured Google Drive Folders</h2>
+          <p class="text-xs text-slate-400">Map specific Google Drive folders to target social platforms, schedules, and cleanup rules.</p>
+        </div>
+        <button onclick="openChannelModal()" class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <span>Add Folder Mapping</span>
+        </button>
+      </div>
+
+      <!-- Channels Container -->
+      <div id="channelsListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="col-span-full py-12 text-center text-slate-500 bg-dark-card border border-dark-border rounded-xl">
+          <svg class="w-8 h-8 mx-auto mb-2 opacity-40 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          Loading folder configurations...
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Drive Queue Inspector -->
+    <div id="tabContent-queue" class="hidden space-y-4">
+      <div class="bg-dark-card border border-dark-border rounded-xl p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div class="flex-1 max-w-xl">
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Google Drive Folder (ID or URL)</label>
+            <div class="flex space-x-2">
+              <input type="text" id="queueScanInput" placeholder="Enter Folder ID (e.g. 1a2b3c...) or paste full drive.google.com URL" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono">
+              <button onclick="scanDriveQueue()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs whitespace-nowrap transition">
+                Scan Queue
+              </button>
+            </div>
+          </div>
+          <div id="queueStatsSummary" class="text-xs text-slate-400">
+            <!-- Will show total and pending -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Scanned Queue Table -->
+      <div class="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-dark-border bg-slate-900/60 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                <th class="py-3 px-4">Filename & Clean Title</th>
+                <th class="py-3 px-4">Size</th>
+                <th class="py-3 px-4">Modified</th>
+                <th class="py-3 px-4">Queue State</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="queueTableBody" class="divide-y divide-dark-border text-slate-300">
+              <tr>
+                <td colspan="5" class="py-8 text-center text-slate-500">
+                  Click "Scan Queue" to inspect waiting videos from Google Drive.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Publication Audit Logs -->
+    <div id="tabContent-logs" class="hidden space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Sub-filters -->
+        <div class="flex flex-wrap gap-1.5 p-1 bg-slate-900/80 rounded-lg border border-slate-800 text-xs">
+          <button onclick="filterLogs('all')" id="logFilter-all" class="px-3 py-1 rounded-md font-medium bg-blue-600 text-white transition">All Logs</button>
+          <button onclick="filterLogs('facebook')" id="logFilter-facebook" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">Facebook</button>
+          <button onclick="filterLogs('youtube')" id="logFilter-youtube" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">YouTube</button>
+          <button onclick="filterLogs('tiktok')" id="logFilter-tiktok" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">TikTok</button>
+          <button onclick="filterLogs('telegram')" id="logFilter-telegram" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">Telegram</button>
+        </div>
+
+        <div class="text-xs text-slate-400 flex items-center space-x-2">
+          <span>Displaying last 30 entries per platform</span>
+        </div>
+      </div>
+
+      <!-- Logs Table -->
+      <div class="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-dark-border bg-slate-900/60 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                <th class="py-3 px-4">Platform</th>
+                <th class="py-3 px-4">Article / Video Title</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">External ID / URL</th>
+                <th class="py-3 px-4">Duration</th>
+                <th class="py-3 px-4 text-right">Published At</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody" class="divide-y divide-dark-border text-slate-300">
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-500">Loading audit logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Diagnostics & Environment -->
+    <div id="tabContent-diagnostics" class="hidden space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Database Card -->
+        <div class="bg-dark-card border border-dark-border rounded-xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span>🍃 MongoDB Database</span>
+            </h3>
+            <span id="diagDbStatus" class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400">Checking...</span>
+          </div>
+          <p class="text-xs text-slate-400">Stores channel configurations, posted video memory deduplication, and publication audit trails.</p>
+          <div class="p-3 bg-slate-900 rounded-lg text-xs space-y-1 font-mono">
+            <div class="text-slate-400">DB Name: <span id="diagDbName" class="text-white">-</span></div>
+            <div id="diagDbErrRow" class="text-red-400 hidden">Note: <span id="diagDbErr">-</span></div>
+          </div>
+          <button onclick="reconnectDatabase()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition">
+            Reconnect to Database
+          </button>
+        </div>
+
+        <!-- Google Drive Integration -->
+        <div class="bg-dark-card border border-dark-border rounded-xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span>📁 Google Drive Integration</span>
+            </h3>
+            <span id="diagDriveStatus" class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400">Checking...</span>
+          </div>
+          <p class="text-xs text-slate-400">Scans pending video reels (`.mp4`, `.mov`, `.webm`) using FIFO oldest-first ordering.</p>
+          <div class="p-3 bg-slate-900 rounded-lg text-xs space-y-1 font-mono">
+            <div class="text-slate-400">Auth Mode: <span id="diagDriveAuth" class="text-blue-400">-</span></div>
+            <div class="text-slate-400">Default Folder: <span id="diagDriveFolder" class="text-white">-</span></div>
+            <div class="text-slate-400">Delete On Post: <span id="diagDriveDelete" class="text-white">-</span></div>
+          </div>
+        </div>
+
+        <!-- Social Media Integrations -->
+        <div class="bg-dark-card border border-dark-border rounded-xl p-5 space-y-3 col-span-full">
+          <h3 class="text-sm font-bold text-white">Social Platform Credentials Overview</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-blue-400">Facebook Page</span>
+                <span id="diagFbBadge" class="w-2 h-2 rounded-full bg-slate-600"></span>
+              </div>
+              <div id="diagFbDetails" class="text-[11px] text-slate-400">Not configured</div>
+            </div>
+
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-red-400">YouTube Shorts</span>
+                <span id="diagYtBadge" class="w-2 h-2 rounded-full bg-slate-600"></span>
+              </div>
+              <div id="diagYtDetails" class="text-[11px] text-slate-400">Not configured</div>
+            </div>
+
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-cyan-400">TikTok API</span>
+                <span id="diagTtBadge" class="w-2 h-2 rounded-full bg-slate-600"></span>
+              </div>
+              <div id="diagTtDetails" class="text-[11px] text-slate-400">Not configured</div>
+            </div>
+
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-sky-400">Telegram Bot</span>
+                <span id="diagTgBadge" class="w-2 h-2 rounded-full bg-slate-600"></span>
+              </div>
+              <div id="diagTgDetails" class="text-[11px] text-slate-400">Not configured</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: Add / Edit Channel -->
+  <div id="channelModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 border-b border-dark-border flex items-center justify-between">
+        <h3 id="channelModalTitle" class="text-base font-bold text-white">Add Folder Mapping</h3>
+        <button onclick="closeChannelModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <form id="channelForm" onsubmit="saveChannel(event)" class="px-6 py-4 overflow-y-auto custom-scrollbar space-y-4 text-xs">
+        <input type="hidden" id="formChannelId">
+
+        <!-- Name -->
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Mapping Label</label>
+          <input type="text" id="formName" required placeholder="e.g. Daily Tech Reels" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <!-- Google Drive Folder -->
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Google Drive Folder ID or URL *</label>
+          <input type="text" id="formFolder" required placeholder="Paste folder URL or 33-char ID" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-slate-400 mt-0.5">Supports both raw IDs and full Google Drive URLs.</p>
+        </div>
+
+        <!-- Target Platforms -->
+        <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-3">
+          <span class="block font-semibold text-slate-200">Broadcast Destinations</span>
+
+          <!-- Facebook -->
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-medium text-blue-400">Facebook Reels</span>
+              <p class="text-[10px] text-slate-400">Upload video reels + optional 1st comment</p>
+            </div>
+            <input type="checkbox" id="formPostFb" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+          </div>
+
+          <!-- YouTube -->
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-medium text-red-400">YouTube Shorts</span>
+              <p class="text-[10px] text-slate-400">Upload to YouTube channel as Shorts</p>
+            </div>
+            <input type="checkbox" id="formPostYt" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+          </div>
+
+          <!-- TikTok -->
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-medium text-cyan-400">TikTok</span>
+              <p class="text-[10px] text-slate-400">Upload to TikTok direct posting API</p>
+            </div>
+            <input type="checkbox" id="formPostTt" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+          </div>
+
+          <!-- Telegram -->
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-medium text-sky-400">Telegram Channel</span>
+              <p class="text-[10px] text-slate-400">Broadcast video file with caption</p>
+            </div>
+            <input type="checkbox" id="formPostTg" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+          </div>
+        </div>
+
+        <!-- Queue & Ordering Rules -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Queue Order</label>
+            <select id="formOrderStrategy" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-blue-500">
+              <option value="oldest_first">Oldest First (FIFO Queue)</option>
+              <option value="newest_first">Newest First</option>
+              <option value="alphabetical">Alphabetical</option>
+              <option value="random">Random</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Drive Cleanup</label>
+            <select id="formDeleteAction" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-blue-500">
+              <option value="trash">Move to Trash (Recommended)</option>
+              <option value="permanent">Permanently Delete</option>
+              <option value="none">Keep on Drive (Don't delete)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Custom Hashtags & First Comment -->
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Default Hashtags (Optional)</label>
+          <input type="text" id="formCustomHashtags" placeholder="#reels #shorts #viral #news" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">High-CTR First Comment (Optional)</label>
+          <input type="text" id="formFirstComment" placeholder="Read full news article here: {link}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div class="flex items-center space-x-2 pt-1">
+          <input type="checkbox" id="formIsActive" checked class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+          <label for="formIsActive" class="font-semibold text-slate-300">Enable this channel immediately</label>
+        </div>
+
+        <div class="pt-3 border-t border-dark-border flex justify-end space-x-2">
+          <button type="button" onclick="closeChannelModal()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition">
+            Cancel
+          </button>
+          <button type="submit" id="btnSubmitChannel" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium shadow transition">
+            Save Configuration
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
+
+  <!-- MODAL: Pipeline Run Results -->
+  <div id="resultsModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 border-b border-dark-border flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <span>🚀 Pipeline Execution Summary</span>
+        </h3>
+        <button onclick="closeResultsModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="px-6 py-4 overflow-y-auto custom-scrollbar space-y-4 text-xs">
+        <div id="resultsMetaCard" class="grid grid-cols-3 gap-3 p-3 bg-slate-900 rounded-xl text-center">
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Videos Posted</span>
+            <span id="resTotalVideos" class="text-lg font-bold text-white">0</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Channels Checked</span>
+            <span id="resChannelsCount" class="text-lg font-bold text-white">0</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-bold">Duration</span>
+            <span id="resDuration" class="text-lg font-bold text-blue-400">0s</span>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <span class="font-semibold text-slate-300 block">Execution Details</span>
+          <div id="resultsItemsContainer" class="space-y-2">
+            <!-- Dynamic item list -->
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-3 border-t border-dark-border bg-slate-900/60 flex justify-end">
+        <button onclick="closeResultsModal()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition text-xs">
+          Close & Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- Client-side Logic Script -->
+  <script>
+    // State Store
+    let currentLogsData = { facebook: [], youtube: [], tiktok: [], telegram: [] };
+    let currentLogFilter = 'all';
+    let channelsList = [];
+
+    // Initialize Dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAllData();
+      // Auto refresh metrics every 60s
+      setInterval(loadMetricsOnly, 60000);
+    });
+
+    async function loadAllData() {
+      const icon = document.getElementById('refreshIcon');
+      if (icon) icon.classList.add('animate-spin');
+
+      try {
+        await Promise.all([
+          loadStatusAndMetrics(),
+          loadChannels(),
+          loadLogs(),
+          loadDiagnostics(),
+        ]);
+      } catch (err) {
+        showToast('Error loading dashboard data', 'error');
+      } finally {
+        if (icon) setTimeout(() => icon.classList.remove('animate-spin'), 400);
+      }
+    }
+
+    async function loadMetricsOnly() {
+      try {
+        await loadStatusAndMetrics();
+      } catch (e) {}
+    }
+
+    // 1. Status & Metrics
+    async function loadStatusAndMetrics() {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      if (!data.success) return;
+
+      // Stats
+      document.getElementById('statTotalPublished').innerText = data.lifetimePublished?.total ?? 0;
+      document.getElementById('statFbPublished').innerText = data.lifetimePublished?.facebook ?? 0;
+      document.getElementById('statYtPublished').innerText = data.lifetimePublished?.youtube ?? 0;
+      document.getElementById('statTtPublished').innerText = data.lifetimePublished?.tiktok ?? 0;
+      document.getElementById('statTgPublished').innerText = data.lifetimePublished?.telegram ?? 0;
+
+      // DB Badge
+      const dbBadge = document.getElementById('dbStatusBadge');
+      const dbText = document.getElementById('dbStatusText');
+      if (data.databaseConnected) {
+        dbBadge.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-400';
+        dbBadge.querySelector('span').className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+        dbText.innerText = 'MongoDB Connected';
+      } else {
+        dbBadge.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400 cursor-pointer hover:bg-amber-500/20';
+        dbBadge.querySelector('span').className = 'w-2 h-2 rounded-full bg-amber-500';
+        dbText.innerText = 'DB Disconnected (Retry)';
+        dbBadge.onclick = reconnectDatabase;
+      }
+
+      // Platform Badges
+      const p = data.config?.platformsEnabled || {};
+      setBadge('badgeFbStatus', p.facebook);
+      setBadge('badgeYtStatus', p.youtube);
+      setBadge('badgeTtStatus', p.tiktok);
+      setBadge('badgeTgStatus', p.telegram);
+    }
+
+    function setBadge(id, isEnabled) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = isEnabled
+        ? 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50'
+        : 'w-2.5 h-2.5 rounded-full bg-slate-600';
+    }
+
+    // 2. Channels
+    async function loadChannels() {
+      const res = await fetch('/api/channels');
+      const data = await res.json();
+      channelsList = data.channels || [];
+
+      document.getElementById('tabBadgeChannels').innerText = channelsList.length;
+
+      const container = document.getElementById('channelsListContainer');
+      if (!channelsList.length) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400 bg-dark-card border border-dark-border rounded-xl p-6">
+            <div class="text-3xl mb-2">📁</div>
+            <h4 class="text-sm font-bold text-white mb-1">No Google Drive Folders Configured Yet</h4>
+            <p class="text-xs text-slate-400 max-w-md mx-auto mb-4">Add your first Google Drive folder to begin automated distribution to Facebook, YouTube, TikTok, and Telegram.</p>
+            <button onclick="openChannelModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold">
+              + Add Google Drive Mapping
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = channelsList.map(ch => `
+        <div class="bg-dark-card border border-dark-border rounded-xl p-4 sm:p-5 flex flex-col justify-between hover:border-slate-700 transition">
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div>
+                <h3 class="text-sm font-bold text-white">${escapeHtml(ch.name || 'Unnamed Folder')}</h3>
+                <span class="text-[11px] font-mono text-slate-400 block mt-0.5">ID: ${escapeHtml(ch.folderId)}</span>
+              </div>
+              <button onclick="toggleChannelActive('${ch._id}')" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition ${
+                ch.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'
+              }">
+                ${ch.isActive ? 'Active' : 'Paused'}
+              </button>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 my-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-900 text-slate-300 border border-slate-800">
+                Order: ${ch.orderStrategy || 'oldest_first'}
+              </span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-900 text-slate-300 border border-slate-800">
+                Cleanup: ${ch.deleteAfterPosting ? (ch.deleteAction || 'trash') : 'Keep'}
+              </span>
+              ${ch.autoPostYouTube ? '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">YouTube</span>' : ''}
+              ${ch.autoPostTikTok ? '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">TikTok</span>' : ''}
+              ${ch.autoPostTelegram ? '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20">Telegram</span>' : ''}
+            </div>
+
+            <div class="text-[11px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-2.5">
+              <div>Memory: <span class="text-slate-300">${(ch.postedVideoIds || []).length} videos marked posted</span></div>
+              ${ch.lastPostedFile ? `<div>Last posted: <span class="text-slate-300 truncate">${escapeHtml(ch.lastPostedFile)}</span></div>` : ''}
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between border-t border-slate-800/80 pt-3 mt-4">
+            <button onclick="inspectChannelQueue('${escapeHtml(ch.folderId)}')" class="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center space-x-1">
+              <span>Inspect Queue &rarr;</span>
+            </button>
+            <div class="flex items-center space-x-1">
+              <button onclick="resetPostedMemory('${ch._id}')" class="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg" title="Reset Posted Memory">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              </button>
+              <button onclick="editChannel('${ch._id}')" class="p-1.5 text-slate-400 hover:text-white rounded-lg" title="Edit Configuration">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              </button>
+              <button onclick="deleteChannel('${ch._id}')" class="p-1.5 text-slate-400 hover:text-red-400 rounded-lg" title="Delete Channel">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 3. Drive Queue Inspector
+    async function scanDriveQueue(folderIdOverride) {
+      const input = document.getElementById('queueScanInput');
+      const folderVal = folderIdOverride || input.value.trim();
+      if (!folderVal && !folderIdOverride) {
+        showToast('Please provide a Google Drive folder ID or URL', 'warning');
+        return;
+      }
+
+      if (folderIdOverride) input.value = folderIdOverride;
+
+      const tbody = document.getElementById('queueTableBody');
+      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400"><svg class="w-6 h-6 mx-auto mb-2 opacity-50 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Scanning Drive files...</td></tr>';
+
+      try {
+        const res = await fetch(`/api/scan?folderId=${encodeURIComponent(folderVal)}`);
+        const data = await res.json();
+        if (!data.success || data.scan?.error) {
+          tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-400">${escapeHtml(data.error || data.scan?.error || 'Failed scanning folder')}</td></tr>`;
+          return;
+        }
+
+        const scan = data.scan;
+        document.getElementById('queueStatsSummary').innerHTML = `
+          <span>Total: <strong class="text-white">${scan.totalVideos}</strong></span> &bull;
+          <span>Pending in queue: <strong class="text-emerald-400">${scan.pendingCount}</strong></span> &bull;
+          <span>Already posted: <strong class="text-slate-400">${scan.postedCount}</strong></span>
+        `;
+
+        if (!scan.videos?.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">No video files (.mp4, .mov, .webm) found in this folder.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = scan.videos.map(v => `
+          <tr class="hover:bg-slate-900/50 transition">
+            <td class="py-3 px-4">
+              <span class="font-bold text-white block">${escapeHtml(v.cleanTitle)}</span>
+              <span class="text-[11px] font-mono text-slate-400 block">${escapeHtml(v.name)}</span>
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-300">${escapeHtml(v.sizeMb || '')} MB</td>
+            <td class="py-3 px-4 text-slate-400">${new Date(v.modifiedTime).toLocaleDateString()}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                v.isPosted ? 'bg-slate-800 text-slate-500 border border-slate-700' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              }">
+                ${v.isPosted ? 'Posted' : 'Pending in Queue'}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              ${v.webViewLink ? `<a href="${escapeHtml(v.webViewLink)}" target="_blank" class="text-blue-400 hover:text-blue-300 font-medium">Open &nearr;</a>` : ''}
+            </td>
+          </tr>
+        `).join('');
+
+        showToast(`Scanned ${scan.totalVideos} videos (${scan.pendingCount} pending)`, 'info');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-red-400">Failed to connect to Google Drive scanner.</td></tr>';
+      }
+    }
+
+    function inspectChannelQueue(folderId) {
+      switchTab('queue');
+      scanDriveQueue(folderId);
+    }
+
+    // 4. Publication Logs
+    async function loadLogs() {
+      const res = await fetch('/api/logs?limit=30');
+      const data = await res.json();
+      currentLogsData = data.logs || { facebook: [], youtube: [], tiktok: [], telegram: [] };
+      renderLogsTable();
+    }
+
+    function filterLogs(platform) {
+      currentLogFilter = platform;
+      ['all', 'facebook', 'youtube', 'tiktok', 'telegram'].forEach(p => {
+        const btn = document.getElementById(`logFilter-${p}`);
+        if (!btn) return;
+        if (p === platform) {
+          btn.className = 'px-3 py-1 rounded-md font-medium bg-blue-600 text-white transition';
+        } else {
+          btn.className = 'px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition';
+        }
+      });
+      renderLogsTable();
+    }
+
+    function renderLogsTable() {
+      const tbody = document.getElementById('logsTableBody');
+      let combined = [];
+
+      if (currentLogFilter === 'all' || currentLogFilter === 'facebook') {
+        (currentLogsData.facebook || []).forEach(l => combined.push({ ...l, _platform: 'Facebook', _title: l.articleTitle, _id: l.fbPostId || l.fbVideoId, _url: l.fbPostId ? `https://facebook.com/${l.fbPostId}` : null }));
+      }
+      if (currentLogFilter === 'all' || currentLogFilter === 'youtube') {
+        (currentLogsData.youtube || []).forEach(l => combined.push({ ...l, _platform: 'YouTube', _title: l.articleTitle, _id: l.ytVideoId, _url: l.ytVideoUrl || (l.ytVideoId ? `https://youtube.com/shorts/${l.ytVideoId}` : null) }));
+      }
+      if (currentLogFilter === 'all' || currentLogFilter === 'tiktok') {
+        (currentLogsData.tiktok || []).forEach(l => combined.push({ ...l, _platform: 'TikTok', _title: l.videoTitle, _id: l.publishId, _url: null }));
+      }
+      if (currentLogFilter === 'all' || currentLogFilter === 'telegram') {
+        (currentLogsData.telegram || []).forEach(l => combined.push({ ...l, _platform: 'Telegram', _title: l.videoTitle, _id: `Msg #${l.messageId}`, _url: null }));
+      }
+
+      combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      if (!combined.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500">No publication records found for this platform.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = combined.map(l => `
+        <tr class="hover:bg-slate-900/50 transition">
+          <td class="py-3 px-4 font-semibold text-white">
+            <span class="inline-flex items-center space-x-1.5">
+              <span>${getPlatformIcon(l._platform)}</span>
+              <span>${escapeHtml(l._platform)}</span>
+            </span>
+          </td>
+          <td class="py-3 px-4 font-medium text-slate-200 max-w-xs truncate" title="${escapeHtml(l._title || '')}">
+            ${escapeHtml(l._title || 'Reel')}
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+              l.status === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+              l.status === 'dry_run' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+              'bg-red-500/10 text-red-400 border border-red-500/20'
+            }">
+              ${l.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 font-mono text-[11px]">
+            ${l._url ? `<a href="${escapeHtml(l._url)}" target="_blank" class="text-blue-400 hover:text-blue-300 font-semibold underline truncate max-w-[120px] inline-block">${escapeHtml(l._id || 'View Post')}</a>` : `<span class="text-slate-400">${escapeHtml(l._id || '-')}</span>`}
+          </td>
+          <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">${l.durationMs ? `${(l.durationMs / 1000).toFixed(1)}s` : '-'}</td>
+          <td class="py-3 px-4 text-right text-slate-400 text-[11px]">${new Date(l.createdAt).toLocaleString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    function getPlatformIcon(p) {
+      if (p === 'Facebook') return '🔵';
+      if (p === 'YouTube') return '🔴';
+      if (p === 'TikTok') return '🎵';
+      if (p === 'Telegram') return '✈️';
+      return '⚡';
+    }
+
+    // 5. Diagnostics
+    async function loadDiagnostics() {
+      const res = await fetch('/api/diagnostics');
+      const data = await res.json();
+      if (!data.success) return;
+
+      const d = data;
+      document.getElementById('diagDbStatus').innerText = d.database.connected ? 'Active & Ready' : 'Disconnected';
+      document.getElementById('diagDbStatus').className = d.database.connected
+        ? 'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+        : 'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20';
+      document.getElementById('diagDbName').innerText = d.database.dbName || '-';
+
+      if (d.database.error) {
+        document.getElementById('diagDbErrRow').classList.remove('hidden');
+        document.getElementById('diagDbErr').innerText = d.database.error;
+      }
+
+      document.getElementById('diagDriveStatus').innerText = d.integrations.googleDrive.configured ? 'Configured' : 'Missing ID';
+      document.getElementById('diagDriveStatus').className = d.integrations.googleDrive.configured
+        ? 'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+        : 'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400';
+      document.getElementById('diagDriveAuth').innerText = d.integrations.googleDrive.authMode;
+      document.getElementById('diagDriveFolder').innerText = d.integrations.googleDrive.folderId || 'None';
+      document.getElementById('diagDriveDelete').innerText = d.integrations.googleDrive.deleteAfterPosting ? d.integrations.googleDrive.deleteAction : 'Disabled';
+
+      setDiagPlatform('diagFbBadge', 'diagFbDetails', d.integrations.facebook.configured, d.integrations.facebook.pageId ? `Page ID: ${d.integrations.facebook.pageId}` : 'Not connected');
+      setDiagPlatform('diagYtBadge', 'diagYtDetails', d.integrations.youtube.configured, d.integrations.youtube.autoUpload ? 'Auto Upload Enabled' : 'Disabled');
+      setDiagPlatform('diagTtBadge', 'diagTtDetails', d.integrations.tiktok.configured, d.integrations.tiktok.autoUpload ? 'Auto Upload Enabled' : 'Disabled');
+      setDiagPlatform('diagTgBadge', 'diagTgDetails', d.integrations.telegram.configured, d.integrations.telegram.targetChatId ? `Chat: ${d.integrations.telegram.targetChatId}` : 'Not connected');
+    }
+
+    function setDiagPlatform(badgeId, textId, isConfigured, text) {
+      const b = document.getElementById(badgeId);
+      const t = document.getElementById(textId);
+      if (b) b.className = isConfigured ? 'w-2 h-2 rounded-full bg-emerald-400' : 'w-2 h-2 rounded-full bg-slate-600';
+      if (t) t.innerText = text;
+    }
+
+    // Pipeline Trigger Action
+    async function runOutputPipeline() {
+      const btn = document.getElementById('btnTriggerPipeline');
+      const icon = document.getElementById('triggerIcon');
+      const text = document.getElementById('triggerText');
+
+      btn.disabled = true;
+      btn.classList.add('opacity-75');
+      text.innerText = 'Broadcasting...';
+      icon.classList.add('animate-spin');
+
+      showToast('🚀 Pipeline broadcast cycle started...', 'info');
+
+      try {
+        const res = await fetch('/api/publish-now', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: true })
+        });
+        const result = await res.json();
+
+        openResultsModal(result);
+        loadAllData();
+      } catch (err) {
+        showToast(`Pipeline execution failed: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+        text.innerText = 'Run Pipeline Now';
+        icon.classList.remove('animate-spin');
+      }
+    }
+
+    // Modal Helpers
+    function openChannelModal(channelData) {
+      document.getElementById('channelModalTitle').innerText = channelData ? 'Edit Folder Mapping' : 'Add Folder Mapping';
+      document.getElementById('formChannelId').value = channelData?._id || '';
+      document.getElementById('formName').value = channelData?.name || '';
+      document.getElementById('formFolder').value = channelData?.folderUrlOrId || channelData?.folderId || '';
+      document.getElementById('formPostFb').checked = channelData ? Boolean(channelData.pageId) : true;
+      document.getElementById('formPostYt').checked = channelData ? Boolean(channelData.autoPostYouTube) : true;
+      document.getElementById('formPostTt').checked = channelData ? Boolean(channelData.autoPostTikTok) : false;
+      document.getElementById('formPostTg').checked = channelData ? Boolean(channelData.autoPostTelegram) : true;
+      document.getElementById('formOrderStrategy').value = channelData?.orderStrategy || 'oldest_first';
+      document.getElementById('formDeleteAction').value = channelData?.deleteAction || 'trash';
+      document.getElementById('formCustomHashtags').value = channelData?.customHashtags || '';
+      document.getElementById('formFirstComment').value = channelData?.firstCommentText || '';
+      document.getElementById('formIsActive').checked = channelData?.isActive !== false;
+
+      const modal = document.getElementById('channelModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeChannelModal() {
+      const modal = document.getElementById('channelModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveChannel(e) {
+      e.preventDefault();
+      const id = document.getElementById('formChannelId').value;
+      const isEdit = Boolean(id);
+
+      const payload = {
+        name: document.getElementById('formName').value.trim(),
+        folderUrlOrId: document.getElementById('formFolder').value.trim(),
+        autoPostYouTube: document.getElementById('formPostYt').checked,
+        autoPostTikTok: document.getElementById('formPostTt').checked,
+        autoPostTelegram: document.getElementById('formPostTg').checked,
+        orderStrategy: document.getElementById('formOrderStrategy').value,
+        deleteAction: document.getElementById('formDeleteAction').value,
+        deleteAfterPosting: document.getElementById('formDeleteAction').value !== 'none',
+        customHashtags: document.getElementById('formCustomHashtags').value.trim(),
+        firstCommentText: document.getElementById('formFirstComment').value.trim(),
+        isActive: document.getElementById('formIsActive').checked,
+      };
+
+      try {
+        const url = isEdit ? `/api/channels/${encodeURIComponent(id)}` : '/api/channels';
+        const method = isEdit ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Failed saving channel');
+        }
+
+        closeChannelModal();
+        showToast(isEdit ? 'Folder configuration updated' : 'New Google Drive folder added', 'success');
+        loadChannels();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function toggleChannelActive(id) {
+      try {
+        const res = await fetch(`/api/channels/${encodeURIComponent(id)}/toggle`, { method: 'PATCH' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Folder mapping is now ${data.isActive ? 'Active' : 'Paused'}`, 'info');
+          loadChannels();
+        }
+      } catch (e) {
+        showToast('Failed to toggle status', 'error');
+      }
+    }
+
+    async function resetPostedMemory(id) {
+      if (!confirm('Reset posted video history for this folder? Videos in the folder will become eligible for re-posting.')) return;
+      try {
+        const res = await fetch(`/api/channels/${encodeURIComponent(id)}/reset-posted`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, 'success');
+          loadChannels();
+        }
+      } catch (e) {
+        showToast('Failed to reset memory', 'error');
+      }
+    }
+
+    async function deleteChannel(id) {
+      if (!confirm('Delete this folder mapping?')) return;
+      try {
+        const res = await fetch(`/api/channels/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Channel mapping deleted', 'info');
+          loadChannels();
+        }
+      } catch (e) {
+        showToast('Failed deleting channel', 'error');
+      }
+    }
+
+    function editChannel(id) {
+      const ch = channelsList.find(c => c._id === id);
+      if (ch) openChannelModal(ch);
+    }
+
+    async function reconnectDatabase() {
+      showToast('Attempting to connect to MongoDB...', 'info');
+      try {
+        const res = await fetch('/api/db/connect', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, 'success');
+          loadAllData();
+        } else {
+          showToast(data.error || 'Connection failed', 'error');
+        }
+      } catch (e) {
+        showToast('DB connection request failed', 'error');
+      }
+    }
+
+    // Results Modal
+    function openResultsModal(res) {
+      document.getElementById('resTotalVideos').innerText = res.totalVideosPublished ?? 0;
+      document.getElementById('resChannelsCount').innerText = res.channelsProcessed ?? 0;
+      document.getElementById('resDuration').innerText = `${((res.durationMs || 0) / 1000).toFixed(1)}s`;
+
+      const itemsBox = document.getElementById('resultsItemsContainer');
+      const results = res.results || [];
+
+      if (!results.length) {
+        itemsBox.innerHTML = `
+          <div class="p-3 bg-slate-900 rounded-lg text-slate-400 text-center">
+            ${res.totalVideosPublished === 0 ? 'No pending videos found in Google Drive folder queue.' : 'Broadcast finished.'}
+          </div>
+        `;
+      } else {
+        itemsBox.innerHTML = results.map(r => `
+          <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-1.5">
+            <div class="flex items-center justify-between font-bold text-white">
+              <span>${escapeHtml(r.videoTitle || 'Reel')}</span>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${r.error ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">
+                ${r.error ? 'Error' : 'Published'}
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-400">Folder ID: ${escapeHtml(r.folderId)}</div>
+            ${r.deletedFromDrive ? '<div class="text-[11px] text-emerald-400 font-semibold">&check; Cleaned up from Google Drive</div>' : ''}
+          </div>
+        `).join('');
+      }
+
+      const modal = document.getElementById('resultsModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeResultsModal() {
+      const modal = document.getElementById('resultsModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Navigation Switch
+    function switchTab(tabId) {
+      ['channels', 'queue', 'logs', 'diagnostics'].forEach(t => {
+        const btn = document.getElementById(`tabBtn-${t}`);
+        const content = document.getElementById(`tabContent-${t}`);
+        if (!btn || !content) return;
+
+        if (t === tabId) {
+          btn.className = 'tab-button pb-3 px-1 text-sm font-semibold border-b-2 border-blue-500 text-blue-400 flex items-center space-x-2';
+          content.classList.remove('hidden');
+        } else {
+          btn.className = 'tab-button pb-3 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2';
+          content.classList.add('hidden');
+        }
+      });
+    }
+
+    // Toast Utility
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200' :
+                 type === 'error' ? 'bg-red-950/90 border-red-500/40 text-red-200' :
+                 type === 'warning' ? 'bg-amber-950/90 border-amber-500/40 text-amber-200' :
+                 'bg-slate-900/90 border-blue-500/40 text-slate-200';
+
+      toast.className = `p-3 rounded-xl border backdrop-blur-md shadow-2xl flex items-center justify-between pointer-events-auto transition-all transform duration-200 ${bg}`;
+      toast.innerHTML = `
+        <div class="flex items-center space-x-2 text-xs font-medium">
+          <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+          <span>${escapeHtml(message)}</span>
+        </div>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 200);
+      }, 4000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[m]);
+    }
+  </script>
 </body>
 </html>

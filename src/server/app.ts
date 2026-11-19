@@ -11,7 +11,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  app.get(['/api/health', '/api/index', '/api'], (_req: Request, res: Response) => {
+  app.get(['/health', '/api/health', '/api/index', '/api'], (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       service: 'Output Automation (Google Drive -> Facebook / YouTube / TikTok / Telegram)',
@@ -375,7 +375,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
   // Get publication logs across platforms
   app.get('/api/logs', async (req: Request, res: Response) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 30;
+      const limit = req.query.limit ? Math.min(Math.max(parseInt(req.query.limit as string, 10), 1), 1000) : 500;
       if (!isDbConnected()) {
         return res.json({
           success: true,
@@ -399,6 +399,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
           youtube: youtubeLogs.length,
           tiktok: tiktokLogs.length,
           telegram: telegramLogs.length,
+          total: facebookLogs.length + youtubeLogs.length + tiktokLogs.length + telegramLogs.length,
         },
         logs: {
           facebook: facebookLogs,

@@ -416,42 +416,163 @@
 
     <!-- TAB 5: Publication Audit Logs -->
     <div id="tabContent-logs" class="hidden space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <!-- Sub-filters -->
-        <div class="flex flex-wrap gap-1.5 p-1 bg-slate-900/80 rounded-lg border border-slate-800 text-xs">
-          <button onclick="filterLogs('all')" id="logFilter-all" class="px-3 py-1 rounded-md font-medium bg-blue-600 text-white transition">All Logs (960+)</button>
-          <button onclick="filterLogs('facebook')" id="logFilter-facebook" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">Facebook Reels (300)</button>
-          <button onclick="filterLogs('youtube')" id="logFilter-youtube" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">YouTube Shorts (160)</button>
-          <button onclick="filterLogs('tiktok')" id="logFilter-tiktok" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">TikTok (501)</button>
-          <button onclick="filterLogs('telegram')" id="logFilter-telegram" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">Telegram</button>
+      <!-- Top Action & Info Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-card border border-dark-border rounded-xl p-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center space-x-2">
+            <span>📜 Publication Audit Logs</span>
+            <span id="logHeaderTotalBadge" class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">Loading...</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Real-time faceted filtering, search, modal inspection, and CSV export across all published articles and videos.</p>
         </div>
-
-        <div class="text-xs text-slate-400 flex items-center space-x-2">
-          <span>Displaying real records from database collections</span>
+        <div class="flex items-center space-x-2">
+          <button onclick="exportLogsToCsv()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-medium text-xs transition">
+            <span>📥</span>
+            <span>Export CSV</span>
+          </button>
+          <button onclick="loadLogs()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition">
+            <span id="logsRefreshIcon">🔄</span>
+            <span>Reload</span>
+          </button>
         </div>
       </div>
 
+      <!-- Advanced Filter Panel -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-4 space-y-3">
+        <!-- Filter Row 1: Platform Pills -->
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div class="flex flex-wrap gap-1.5 p-1 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
+            <button onclick="setLogPlatformFilter('all')" id="logFilter-all" class="px-3 py-1 rounded-md font-semibold bg-blue-600 text-white transition">
+              All Platforms (<span id="logCount-all">-</span>)
+            </button>
+            <button onclick="setLogPlatformFilter('facebook')" id="logFilter-facebook" class="px-3 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition">
+              🔵 Facebook Reels (<span id="logCount-facebook">-</span>)
+            </button>
+            <button onclick="setLogPlatformFilter('youtube')" id="logFilter-youtube" class="px-3 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition">
+              🔴 YouTube Shorts (<span id="logCount-youtube">-</span>)
+            </button>
+            <button onclick="setLogPlatformFilter('tiktok')" id="logFilter-tiktok" class="px-3 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition">
+              🎵 TikTok (<span id="logCount-tiktok">-</span>)
+            </button>
+            <button onclick="setLogPlatformFilter('telegram')" id="logFilter-telegram" class="px-3 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition">
+              ✈️ Telegram (<span id="logCount-telegram">0</span>)
+            </button>
+          </div>
+          <div class="text-xs text-slate-400 flex items-center space-x-2">
+            <button onclick="resetLogFilters()" class="text-xs text-slate-400 hover:text-white underline transition">
+              Reset all filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Row 2: Faceted Selectors (Account, Status, Time Range, Sort) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <!-- Account/Channel Filter -->
+          <div>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Target Account / Channel</label>
+            <select id="logFilterAccount" onchange="applyLogFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+              <option value="all">All Accounts & Channels</option>
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Status</label>
+            <select id="logFilterStatus" onchange="applyLogFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+              <option value="all">All Statuses</option>
+              <option value="success">✅ Published / Success</option>
+              <option value="failed">❌ Failed / Errors</option>
+              <option value="dry_run">🧪 Dry Run</option>
+            </select>
+          </div>
+
+          <!-- Time Range Filter -->
+          <div>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Time Range</label>
+            <select id="logFilterTime" onchange="applyLogFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+              <option value="all">All Time</option>
+              <option value="24h">Past 24 Hours</option>
+              <option value="7d">Past 7 Days</option>
+              <option value="30d">Past 30 Days</option>
+            </select>
+          </div>
+
+          <!-- Sort Order -->
+          <div>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Sort By</label>
+            <select id="logFilterSort" onchange="applyLogFilters()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="title_asc">Title (A-Z)</option>
+              <option value="duration_desc">Duration (Longest First)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Filter Row 3: Instant Search & Page Size -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+          <div class="relative flex-1">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 text-xs">🔍</span>
+            <input type="text" id="logFilterSearch" oninput="handleLogSearchInput()" placeholder="Search logs by title, post ID, video ID, URL, channel, or error details..." class="w-full pl-8 pr-8 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+            <button id="logSearchClearBtn" onclick="clearLogSearch()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white text-xs">✕</button>
+          </div>
+
+          <div class="flex items-center space-x-2 text-xs text-slate-400 shrink-0">
+            <span>Rows:</span>
+            <select id="logPageSize" onchange="changeLogPageSize()" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white focus:outline-none focus:border-blue-500 text-xs">
+              <option value="15">15</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Filter Badges Bar -->
+        <div id="logActiveChipsContainer" class="hidden flex-wrap items-center gap-1.5 pt-2 border-t border-slate-800 text-xs">
+          <span class="text-slate-400 text-[11px] font-semibold uppercase tracking-wider mr-1">Active:</span>
+          <!-- Dynamic Chips will appear here -->
+        </div>
+      </div>
+
+      <!-- Result Counter & Pagination Bar Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400 px-1">
+        <div id="logsPaginationSummary">
+          Showing 0 of 0 logs
+        </div>
+        <div id="logsPaginationHeader" class="flex items-center space-x-1"></div>
+      </div>
+
       <!-- Logs Table -->
-      <div class="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
+      <div class="bg-dark-card border border-dark-border rounded-xl overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse text-xs">
             <thead>
-              <tr class="border-b border-dark-border bg-slate-900/60 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+              <tr class="border-b border-dark-border bg-slate-900/70 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
                 <th class="py-3 px-4">Platform</th>
                 <th class="py-3 px-4">Article / Video Title</th>
+                <th class="py-3 px-4">Account / Channel</th>
                 <th class="py-3 px-4">Status</th>
-                <th class="py-3 px-4">External Post / Video Link</th>
+                <th class="py-3 px-4">Post Link / ID</th>
                 <th class="py-3 px-4">Duration</th>
                 <th class="py-3 px-4 text-right">Published At</th>
+                <th class="py-3 px-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody id="logsTableBody" class="divide-y divide-dark-border text-slate-300">
               <tr>
-                <td colspan="6" class="py-8 text-center text-slate-500">Loading audit logs from database...</td>
+                <td colspan="8" class="py-10 text-center text-slate-500">Loading audit logs from database...</td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400 px-1">
+        <div id="logsPaginationFooterSummary"></div>
+        <div id="logsPaginationFooter" class="flex items-center space-x-1"></div>
       </div>
     </div>
 
@@ -734,6 +855,81 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Log Details & Inspection -->
+  <div id="logDetailModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <span id="logModalPlatformBadge" class="text-base font-bold text-white flex items-center space-x-1.5"></span>
+          <span id="logModalStatusBadge" class="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider"></span>
+        </div>
+        <button onclick="closeLogModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-400 text-[11px] font-semibold uppercase tracking-wider mb-1">Article / Video Title</label>
+          <div class="flex items-start justify-between gap-2 p-3 bg-slate-900 rounded-xl text-white font-medium text-sm border border-slate-800">
+            <span id="logModalTitle" class="break-words leading-relaxed"></span>
+            <button onclick="copyModalField('logModalTitle', 'Title copied!')" class="text-xs text-blue-400 hover:text-blue-300 font-semibold shrink-0 flex items-center space-x-1 bg-slate-800 px-2 py-1 rounded">
+              <span>📋</span> <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span class="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Target Account / Channel</span>
+            <span id="logModalAccount" class="text-slate-100 font-semibold block text-xs"></span>
+          </div>
+          <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span class="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">External ID / Link</span>
+            <div id="logModalLink" class="font-mono text-slate-300 text-xs"></div>
+          </div>
+          <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span class="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Duration</span>
+            <span id="logModalDuration" class="text-slate-200 font-mono text-xs block"></span>
+          </div>
+          <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span class="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Published Timestamp</span>
+            <span id="logModalDate" class="text-slate-200 font-mono text-xs block"></span>
+          </div>
+        </div>
+
+        <div id="logModalErrorBox" class="hidden p-3.5 bg-red-950/40 border border-red-800/50 rounded-xl text-red-300 space-y-1">
+          <div class="font-bold flex items-center space-x-1.5 text-red-200">
+            <span>⚠️</span> <span>Error Diagnostics:</span>
+          </div>
+          <pre id="logModalErrorText" class="text-[11px] font-mono whitespace-pre-wrap break-words text-red-300"></pre>
+        </div>
+
+        <div id="logModalCaptionBox" class="space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-400 text-[11px] font-semibold uppercase tracking-wider">Caption / Tags</span>
+            <button onclick="copyModalField('logModalCaption', 'Caption copied!')" class="text-xs text-blue-400 hover:text-blue-300 font-semibold">📋 Copy Caption</button>
+          </div>
+          <div id="logModalCaption" class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-slate-300 whitespace-pre-wrap max-h-36 overflow-y-auto text-xs font-mono leading-relaxed"></div>
+        </div>
+
+        <details class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-[11px]">
+          <summary class="cursor-pointer text-slate-400 hover:text-white font-semibold select-none">🔍 View Raw Database Document (JSON)</summary>
+          <div class="mt-2 relative">
+            <button onclick="copyModalRawJson()" class="absolute top-2 right-2 px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-mono">Copy JSON</button>
+            <pre id="logModalRawJson" class="text-slate-400 font-mono text-[10px] overflow-x-auto max-h-52 p-3 bg-black/50 rounded-lg"></pre>
+          </div>
+        </details>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end">
+        <button onclick="closeLogModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition text-xs">
+          Close
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1101,87 +1297,640 @@
       scanDriveQueue(folderId);
     }
 
-    // 6. Publication Logs
+    // 6. Publication Logs State & Multi-Faceted Filter Engine
+    let allUnifiedLogs = [];
+    let filteredLogs = [];
+    let logPlatformFilter = 'all';
+    let logCurrentPage = 1;
+    let logPageSize = 25;
+    let logSearchDebounceTimer = null;
+    let selectedModalLog = null;
+
     async function loadLogs() {
-      const res = await fetch('/api/logs?limit=40');
-      const data = await res.json();
-      currentLogsData = data.logs || { facebook: [], youtube: [], tiktok: [], telegram: [] };
-      renderLogsTable();
+      const reloadIcon = document.getElementById('logsRefreshIcon');
+      if (reloadIcon) reloadIcon.classList.add('animate-spin');
+
+      try {
+        const res = await fetch('/api/logs?limit=1000');
+        const data = await res.json();
+        currentLogsData = data.logs || { facebook: [], youtube: [], tiktok: [], telegram: [] };
+
+        // Normalize every platform record into a unified standard schema
+        allUnifiedLogs = [];
+
+        (currentLogsData.facebook || []).forEach(l => {
+          allUnifiedLogs.push({
+            ...l,
+            _platform: 'Facebook',
+            _platformCode: 'facebook',
+            _platformIcon: '🔵',
+            _platformLabel: 'Facebook Reel',
+            _title: l.articleTitle || 'Facebook Reel',
+            _account: l.pageName || 'Facebook Page',
+            _accountId: l.pageId || '',
+            _id: l.fbPostId || l.fbVideoId || l._id,
+            _url: l.fbPostId ? `https://facebook.com/${l.fbPostId}` : (l.fbVideoId ? `https://facebook.com/watch/?v=${l.fbVideoId}` : null),
+            _status: (l.status === 'published' || l.status === 'success') ? 'success' : 'failed',
+            _rawStatus: l.status,
+            _duration: l.durationSeconds ? `${l.durationSeconds}s` : '-',
+            _durationNum: l.durationSeconds || 0,
+            _createdAt: new Date(l.createdAt || Date.now()),
+            _caption: l.caption || '',
+            _error: l.errorMessage || l.error || null,
+          });
+        });
+
+        (currentLogsData.youtube || []).forEach(l => {
+          allUnifiedLogs.push({
+            ...l,
+            _platform: 'YouTube',
+            _platformCode: 'youtube',
+            _platformIcon: '🔴',
+            _platformLabel: 'YouTube Short',
+            _title: l.articleTitle || 'YouTube Short',
+            _account: l.channelTitle || 'YouTube Channel',
+            _accountId: l.channelId || '',
+            _id: l.ytVideoId || l._id,
+            _url: l.ytVideoUrl || (l.ytVideoId ? `https://youtube.com/shorts/${l.ytVideoId}` : null),
+            _status: l.status === 'success' ? 'success' : 'failed',
+            _rawStatus: l.status,
+            _duration: '-',
+            _durationNum: 0,
+            _createdAt: new Date(l.createdAt || Date.now()),
+            _caption: l.caption || l.description || '',
+            _error: l.errorMessage || l.error || null,
+          });
+        });
+
+        (currentLogsData.tiktok || []).forEach(l => {
+          allUnifiedLogs.push({
+            ...l,
+            _platform: 'TikTok',
+            _platformCode: 'tiktok',
+            _platformIcon: '🎵',
+            _platformLabel: 'TikTok Video',
+            _title: l.videoTitle || 'TikTok Video',
+            _account: 'TikTok Publisher',
+            _accountId: '',
+            _id: l.publishId || l._id,
+            _url: null,
+            _status: l.status === 'success' ? 'success' : (l.status === 'dry_run' ? 'dry_run' : 'failed'),
+            _rawStatus: l.status,
+            _duration: l.durationMs ? `${(l.durationMs / 1000).toFixed(1)}s` : '-',
+            _durationNum: l.durationMs ? (l.durationMs / 1000) : 0,
+            _createdAt: new Date(l.createdAt || Date.now()),
+            _caption: l.caption || '',
+            _error: l.errorMessage || l.error || null,
+          });
+        });
+
+        (currentLogsData.telegram || []).forEach(l => {
+          allUnifiedLogs.push({
+            ...l,
+            _platform: 'Telegram',
+            _platformCode: 'telegram',
+            _platformIcon: '✈️',
+            _platformLabel: 'Telegram Post',
+            _title: l.videoTitle || 'Telegram Post',
+            _account: 'Telegram Channel',
+            _accountId: '',
+            _id: l.messageId ? `Msg #${l.messageId}` : l._id,
+            _url: null,
+            _status: l.status === 'success' ? 'success' : 'failed',
+            _rawStatus: l.status,
+            _duration: '-',
+            _durationNum: 0,
+            _createdAt: new Date(l.createdAt || Date.now()),
+            _caption: l.caption || '',
+            _error: l.errorMessage || l.error || null,
+          });
+        });
+
+        // Update counts
+        const fbCount = currentLogsData.facebook?.length || 0;
+        const ytCount = currentLogsData.youtube?.length || 0;
+        const ttCount = currentLogsData.tiktok?.length || 0;
+        const tgCount = currentLogsData.telegram?.length || 0;
+        const totalCount = allUnifiedLogs.length;
+
+        document.getElementById('logCount-all').innerText = totalCount;
+        document.getElementById('logCount-facebook').innerText = fbCount;
+        document.getElementById('logCount-youtube').innerText = ytCount;
+        document.getElementById('logCount-tiktok').innerText = ttCount;
+        document.getElementById('logCount-telegram').innerText = tgCount;
+        document.getElementById('logHeaderTotalBadge').innerText = `${totalCount} records`;
+
+        // Populate Account / Channel dropdown dynamically
+        populateAccountFilterDropdown();
+
+        // Apply filters & render
+        applyLogFilters();
+      } catch (err) {
+        console.error('Failed to load logs:', err);
+        showToast('Error loading publication logs', 'error');
+      } finally {
+        if (reloadIcon) setTimeout(() => reloadIcon.classList.remove('animate-spin'), 400);
+      }
     }
 
-    function filterLogs(platform) {
-      currentLogFilter = platform;
+    function populateAccountFilterDropdown() {
+      const select = document.getElementById('logFilterAccount');
+      if (!select) return;
+
+      const currentValue = select.value;
+      const accounts = new Set();
+      allUnifiedLogs.forEach(l => {
+        if (l._account && l._account !== '-' && l._account !== 'TikTok Publisher' && l._account !== 'Telegram Channel') {
+          accounts.add(l._account);
+        }
+      });
+
+      const sorted = Array.from(accounts).sort((a, b) => a.localeCompare(b));
+      let html = '<option value="all">All Accounts & Channels</option>';
+      sorted.forEach(acc => {
+        html += `<option value="${escapeHtml(acc)}">${escapeHtml(acc)}</option>`;
+      });
+      select.innerHTML = html;
+      if (Array.from(accounts).includes(currentValue)) {
+        select.value = currentValue;
+      }
+    }
+
+    function setLogPlatformFilter(platform) {
+      logPlatformFilter = platform;
+      logCurrentPage = 1;
       ['all', 'facebook', 'youtube', 'tiktok', 'telegram'].forEach(p => {
         const btn = document.getElementById(`logFilter-${p}`);
         if (!btn) return;
         if (p === platform) {
-          btn.className = 'px-3 py-1 rounded-md font-medium bg-blue-600 text-white transition';
+          btn.className = 'px-3 py-1 rounded-md font-semibold bg-blue-600 text-white transition';
         } else {
-          btn.className = 'px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition';
+          btn.className = 'px-3 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition';
         }
       });
+      applyLogFilters();
+    }
+
+    function handleLogSearchInput() {
+      const input = document.getElementById('logFilterSearch');
+      const clearBtn = document.getElementById('logSearchClearBtn');
+      if (input && clearBtn) {
+        clearBtn.classList.toggle('hidden', !input.value.trim());
+      }
+      clearTimeout(logSearchDebounceTimer);
+      logSearchDebounceTimer = setTimeout(() => {
+        logCurrentPage = 1;
+        applyLogFilters();
+      }, 150);
+    }
+
+    function clearLogSearch() {
+      const input = document.getElementById('logFilterSearch');
+      const clearBtn = document.getElementById('logSearchClearBtn');
+      if (input) input.value = '';
+      if (clearBtn) clearBtn.classList.add('hidden');
+      logCurrentPage = 1;
+      applyLogFilters();
+    }
+
+    function changeLogPageSize() {
+      const select = document.getElementById('logPageSize');
+      const val = select.value;
+      logPageSize = val === 'all' ? 99999 : parseInt(val, 10);
+      logCurrentPage = 1;
+      applyLogFilters();
+    }
+
+    function resetLogFilters() {
+      logPlatformFilter = 'all';
+      setLogPlatformFilter('all');
+      const accSelect = document.getElementById('logFilterAccount');
+      if (accSelect) accSelect.value = 'all';
+      const statusSelect = document.getElementById('logFilterStatus');
+      if (statusSelect) statusSelect.value = 'all';
+      const timeSelect = document.getElementById('logFilterTime');
+      if (timeSelect) timeSelect.value = 'all';
+      const sortSelect = document.getElementById('logFilterSort');
+      if (sortSelect) sortSelect.value = 'newest';
+      clearLogSearch();
+      logCurrentPage = 1;
+      applyLogFilters();
+      showToast('Publication log filters reset', 'info');
+    }
+
+    function applyLogFilters() {
+      const accountFilter = document.getElementById('logFilterAccount')?.value || 'all';
+      const statusFilter = document.getElementById('logFilterStatus')?.value || 'all';
+      const timeFilter = document.getElementById('logFilterTime')?.value || 'all';
+      const sortFilter = document.getElementById('logFilterSort')?.value || 'newest';
+      const query = (document.getElementById('logFilterSearch')?.value || '').trim().toLowerCase();
+
+      const now = Date.now();
+      const cutoff24h = now - (24 * 60 * 60 * 1000);
+      const cutoff7d = now - (7 * 24 * 60 * 60 * 1000);
+      const cutoff30d = now - (30 * 24 * 60 * 60 * 1000);
+
+      filteredLogs = allUnifiedLogs.filter(l => {
+        // Platform
+        if (logPlatformFilter !== 'all' && l._platformCode !== logPlatformFilter) return false;
+
+        // Account
+        if (accountFilter !== 'all' && l._account !== accountFilter) return false;
+
+        // Status
+        if (statusFilter !== 'all') {
+          if (statusFilter === 'success' && l._status !== 'success') return false;
+          if (statusFilter === 'failed' && l._status !== 'failed') return false;
+          if (statusFilter === 'dry_run' && l._status !== 'dry_run') return false;
+        }
+
+        // Time Range
+        if (timeFilter !== 'all') {
+          const t = l._createdAt.getTime();
+          if (timeFilter === '24h' && t < cutoff24h) return false;
+          if (timeFilter === '7d' && t < cutoff7d) return false;
+          if (timeFilter === '30d' && t < cutoff30d) return false;
+        }
+
+        // Search Query
+        if (query) {
+          const titleMatch = (l._title || '').toLowerCase().includes(query);
+          const idMatch = (l._id || '').toLowerCase().includes(query);
+          const accMatch = (l._account || '').toLowerCase().includes(query);
+          const urlMatch = (l._url || '').toLowerCase().includes(query);
+          const captionMatch = (l._caption || '').toLowerCase().includes(query);
+          const errorMatch = (l._error || '').toLowerCase().includes(query);
+          if (!titleMatch && !idMatch && !accMatch && !urlMatch && !captionMatch && !errorMatch) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      // Sorting
+      if (sortFilter === 'newest') {
+        filteredLogs.sort((a, b) => b._createdAt.getTime() - a._createdAt.getTime());
+      } else if (sortFilter === 'oldest') {
+        filteredLogs.sort((a, b) => a._createdAt.getTime() - b._createdAt.getTime());
+      } else if (sortFilter === 'title_asc') {
+        filteredLogs.sort((a, b) => (a._title || '').localeCompare(b._title || ''));
+      } else if (sortFilter === 'duration_desc') {
+        filteredLogs.sort((a, b) => b._durationNum - a._durationNum);
+      }
+
+      renderActiveChips(accountFilter, statusFilter, timeFilter, query);
       renderLogsTable();
+    }
+
+    function renderActiveChips(account, status, time, query) {
+      const container = document.getElementById('logActiveChipsContainer');
+      if (!container) return;
+
+      const chips = [];
+      if (logPlatformFilter !== 'all') {
+        chips.push({
+          label: `Platform: ${logPlatformFilter}`,
+          onRemove: "setLogPlatformFilter('all')"
+        });
+      }
+      if (account !== 'all') {
+        chips.push({
+          label: `Account: ${account}`,
+          onRemove: "document.getElementById('logFilterAccount').value='all'; applyLogFilters();"
+        });
+      }
+      if (status !== 'all') {
+        chips.push({
+          label: `Status: ${status === 'success' ? 'Published' : status === 'failed' ? 'Failed' : 'Dry Run'}`,
+          onRemove: "document.getElementById('logFilterStatus').value='all'; applyLogFilters();"
+        });
+      }
+      if (time !== 'all') {
+        chips.push({
+          label: `Time: ${time === '24h' ? 'Past 24h' : time === '7d' ? 'Past 7d' : 'Past 30d'}`,
+          onRemove: "document.getElementById('logFilterTime').value='all'; applyLogFilters();"
+        });
+      }
+      if (query) {
+        chips.push({
+          label: `Search: "${query}"`,
+          onRemove: "clearLogSearch()"
+        });
+      }
+
+      if (!chips.length) {
+        container.classList.add('hidden');
+        container.classList.remove('flex');
+        container.innerHTML = '';
+        return;
+      }
+
+      container.classList.remove('hidden');
+      container.classList.add('flex');
+      container.innerHTML = `
+        <span class="text-slate-400 text-[11px] font-semibold uppercase tracking-wider mr-1">Active Filters (${chips.length}):</span>
+        ${chips.map(c => `
+          <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800 text-slate-200 border border-slate-700">
+            <span>${escapeHtml(c.label)}</span>
+            <button onclick="${c.onRemove}" class="text-slate-400 hover:text-red-400 font-bold ml-1 transition">✕</button>
+          </span>
+        `).join('')}
+        <button onclick="resetLogFilters()" class="text-[11px] text-blue-400 hover:text-blue-300 ml-2 underline">Clear all</button>
+      `;
     }
 
     function renderLogsTable() {
       const tbody = document.getElementById('logsTableBody');
-      let combined = [];
+      const total = filteredLogs.length;
 
-      if (currentLogFilter === 'all' || currentLogFilter === 'facebook') {
-        (currentLogsData.facebook || []).forEach(l => combined.push({ ...l, _platform: 'Facebook', _title: l.articleTitle, _id: l.fbPostId || l.fbVideoId, _url: l.fbPostId ? `https://facebook.com/${l.fbPostId}` : null }));
-      }
-      if (currentLogFilter === 'all' || currentLogFilter === 'youtube') {
-        (currentLogsData.youtube || []).forEach(l => combined.push({ ...l, _platform: 'YouTube', _title: l.articleTitle, _id: l.ytVideoId, _url: l.ytVideoUrl || (l.ytVideoId ? `https://youtube.com/shorts/${l.ytVideoId}` : null) }));
-      }
-      if (currentLogFilter === 'all' || currentLogFilter === 'tiktok') {
-        (currentLogsData.tiktok || []).forEach(l => combined.push({ ...l, _platform: 'TikTok', _title: l.videoTitle, _id: l.publishId, _url: null }));
-      }
-      if (currentLogFilter === 'all' || currentLogFilter === 'telegram') {
-        (currentLogsData.telegram || []).forEach(l => combined.push({ ...l, _platform: 'Telegram', _title: l.videoTitle, _id: `Msg #${l.messageId}`, _url: null }));
-      }
+      // Calculate pagination
+      const totalPages = Math.ceil(total / logPageSize) || 1;
+      if (logCurrentPage > totalPages) logCurrentPage = totalPages;
+      if (logCurrentPage < 1) logCurrentPage = 1;
 
-      combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const startIndex = (logCurrentPage - 1) * logPageSize;
+      const endIndex = Math.min(startIndex + logPageSize, total);
+      const pageLogs = filteredLogs.slice(startIndex, endIndex);
 
-      if (!combined.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500">No publication records found.</td></tr>';
+      // Summary text
+      const summaryText = total === 0
+        ? `No logs match your filter criteria (Total in DB: ${allUnifiedLogs.length})`
+        : `Showing <strong class="text-white">${startIndex + 1}</strong>–<strong class="text-white">${endIndex}</strong> of <strong class="text-white">${total}</strong> logs ${total < allUnifiedLogs.length ? `(filtered from ${allUnifiedLogs.length})` : ''}`;
+
+      const headerSummary = document.getElementById('logsPaginationSummary');
+      if (headerSummary) headerSummary.innerHTML = summaryText;
+      const footerSummary = document.getElementById('logsPaginationFooterSummary');
+      if (footerSummary) footerSummary.innerHTML = summaryText;
+
+      renderPaginationControls(totalPages);
+
+      if (!pageLogs.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-12 text-center text-slate-400 space-y-2">
+              <div class="text-3xl">🔍</div>
+              <div class="text-sm font-semibold text-slate-300">No matching publication records found</div>
+              <div class="text-xs text-slate-500">Try adjusting your platform, account, status, or search query.</div>
+              <button onclick="resetLogFilters()" class="mt-2 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-semibold border border-blue-500/30 transition">
+                Reset All Filters
+              </button>
+            </td>
+          </tr>
+        `;
         return;
       }
 
-      tbody.innerHTML = combined.map(l => `
-        <tr class="hover:bg-slate-900/50 transition">
-          <td class="py-3 px-4 font-semibold text-white">
-            <span class="inline-flex items-center space-x-1.5">
-              <span>${getPlatformIcon(l._platform)}</span>
-              <span>${escapeHtml(l._platform)}</span>
-            </span>
-          </td>
-          <td class="py-3 px-4 font-medium text-slate-200 max-w-xs truncate" title="${escapeHtml(l._title || '')}">
-            ${escapeHtml(l._title || 'Reel')}
-          </td>
-          <td class="py-3 px-4">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-              l.status === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-              l.status === 'dry_run' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-              'bg-red-500/10 text-red-400 border border-red-500/20'
-            }">
-              ${l.status}
-            </span>
-          </td>
-          <td class="py-3 px-4 font-mono text-[11px]">
-            ${l._url ? `<a href="${escapeHtml(l._url)}" target="_blank" class="text-blue-400 hover:text-blue-300 font-semibold underline truncate max-w-[150px] inline-block">${escapeHtml(l._id || 'View Post')}</a>` : `<span class="text-slate-400 truncate max-w-[120px] inline-block">${escapeHtml(l._id || '-')}</span>`}
-          </td>
-          <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">${l.durationMs ? `${(l.durationMs / 1000).toFixed(1)}s` : '-'}</td>
-          <td class="py-3 px-4 text-right text-slate-400 text-[11px]">${new Date(l.createdAt).toLocaleString()}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = pageLogs.map((l, idx) => {
+        const itemGlobalIndex = startIndex + idx;
+        const statusBadge = l._status === 'success'
+          ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-flex items-center space-x-1"><span>✅</span><span>Success</span></span>'
+          : l._status === 'dry_run'
+          ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 inline-flex items-center space-x-1"><span>🧪</span><span>Dry Run</span></span>'
+          : '<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20 inline-flex items-center space-x-1"><span>❌</span><span>Failed</span></span>';
+
+        return `
+          <tr class="hover:bg-slate-900/60 transition group cursor-pointer" onclick="openLogModalByIndex(${itemGlobalIndex})">
+            <td class="py-3 px-4 font-semibold text-white whitespace-nowrap">
+              <span class="inline-flex items-center space-x-1.5">
+                <span>${l._platformIcon}</span>
+                <span>${escapeHtml(l._platform)}</span>
+              </span>
+            </td>
+            <td class="py-3 px-4 font-medium text-slate-200 max-w-xs truncate" title="${escapeHtml(l._title || '')}">
+              <div class="truncate font-medium text-slate-100">${escapeHtml(l._title || 'Reel')}</div>
+              ${l._caption ? `<div class="truncate text-[10px] text-slate-400 font-mono">${escapeHtml(l._caption)}</div>` : ''}
+            </td>
+            <td class="py-3 px-4 whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700 max-w-[140px] truncate inline-block align-middle" title="${escapeHtml(l._account)}">
+                ${escapeHtml(l._account)}
+              </span>
+            </td>
+            <td class="py-3 px-4 whitespace-nowrap">
+              ${statusBadge}
+            </td>
+            <td class="py-3 px-4 font-mono text-[11px] whitespace-nowrap" onclick="event.stopPropagation()">
+              ${l._url ? `
+                <a href="${escapeHtml(l._url)}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 font-semibold underline truncate max-w-[140px] inline-flex items-center space-x-1">
+                  <span>${escapeHtml(l._id || 'View Post')}</span>
+                  <span>↗</span>
+                </a>
+              ` : `
+                <span class="text-slate-400 truncate max-w-[120px] inline-block font-mono">${escapeHtml(l._id || '-')}</span>
+              `}
+            </td>
+            <td class="py-3 px-4 text-slate-400 font-mono text-[11px] whitespace-nowrap">${escapeHtml(l._duration)}</td>
+            <td class="py-3 px-4 text-right text-slate-400 text-[11px] whitespace-nowrap font-mono">${l._createdAt.toLocaleString()}</td>
+            <td class="py-3 px-4 text-center whitespace-nowrap" onclick="event.stopPropagation()">
+              <button onclick="openLogModalByIndex(${itemGlobalIndex})" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs" title="View Detailed Log Record">
+                👁️
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    function getPlatformIcon(p) {
-      if (p === 'Facebook') return '🔵';
-      if (p === 'YouTube') return '🔴';
-      if (p === 'TikTok') return '🎵';
-      if (p === 'Telegram') return '✈️';
-      return '⚡';
+    function renderPaginationControls(totalPages) {
+      const renderBar = (elemId) => {
+        const el = document.getElementById(elemId);
+        if (!el) return;
+        if (totalPages <= 1) {
+          el.innerHTML = '';
+          return;
+        }
+
+        let html = '';
+        // Prev button
+        html += `<button onclick="goToLogPage(${logCurrentPage - 1})" ${logCurrentPage <= 1 ? 'disabled class="opacity-40 cursor-not-allowed px-2.5 py-1 rounded bg-slate-800 text-slate-400 text-xs"' : 'class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs transition"'}>Prev</button>`;
+
+        // Page buttons windowing
+        const windowSize = 5;
+        let startPage = Math.max(1, logCurrentPage - 2);
+        let endPage = Math.min(totalPages, startPage + windowSize - 1);
+        if (endPage - startPage < windowSize - 1) {
+          startPage = Math.max(1, endPage - windowSize + 1);
+        }
+
+        if (startPage > 1) {
+          html += `<button onclick="goToLogPage(1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">1</button>`;
+          if (startPage > 2) html += `<span class="px-1 text-slate-500">...</span>`;
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+          if (p === logCurrentPage) {
+            html += `<button class="px-2.5 py-1 rounded bg-blue-600 text-white font-bold text-xs">${p}</button>`;
+          } else {
+            html += `<button onclick="goToLogPage(${p})" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs transition">${p}</button>`;
+          }
+        }
+
+        if (endPage < totalPages) {
+          if (endPage < totalPages - 1) html += `<span class="px-1 text-slate-500">...</span>`;
+          html += `<button onclick="goToLogPage(${totalPages})" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">${totalPages}</button>`;
+        }
+
+        // Next button
+        html += `<button onclick="goToLogPage(${logCurrentPage + 1})" ${logCurrentPage >= totalPages ? 'disabled class="opacity-40 cursor-not-allowed px-2.5 py-1 rounded bg-slate-800 text-slate-400 text-xs"' : 'class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs transition"'}>Next</button>`;
+
+        el.innerHTML = html;
+      };
+
+      renderBar('logsPaginationHeader');
+      renderBar('logsPaginationFooter');
+    }
+
+    function goToLogPage(page) {
+      logCurrentPage = page;
+      renderLogsTable();
+      const tab = document.getElementById('tabContent-logs');
+      if (tab) tab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Modal Inspection
+    function openLogModalByIndex(index) {
+      const item = filteredLogs[index];
+      if (!item) return;
+      selectedModalLog = item;
+
+      document.getElementById('logModalPlatformBadge').innerHTML = `<span>${item._platformIcon}</span><span>${escapeHtml(item._platformLabel || item._platform)}</span>`;
+      
+      const statusBadge = document.getElementById('logModalStatusBadge');
+      if (item._status === 'success') {
+        statusBadge.className = 'px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        statusBadge.innerText = '✅ Success / Published';
+      } else if (item._status === 'dry_run') {
+        statusBadge.className = 'px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20';
+        statusBadge.innerText = '🧪 Dry Run';
+      } else {
+        statusBadge.className = 'px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20';
+        statusBadge.innerText = '❌ Failed';
+      }
+
+      document.getElementById('logModalTitle').innerText = item._title || '-';
+      document.getElementById('logModalAccount').innerText = item._account || '-';
+      
+      const linkDiv = document.getElementById('logModalLink');
+      if (item._url) {
+        linkDiv.innerHTML = `<a href="${escapeHtml(item._url)}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 font-semibold underline break-all">${escapeHtml(item._id || item._url)} ↗</a>`;
+      } else {
+        linkDiv.innerText = item._id || '-';
+      }
+
+      document.getElementById('logModalDuration').innerText = item._duration || '-';
+      document.getElementById('logModalDate').innerText = `${item._createdAt.toLocaleString()} (${item._createdAt.toISOString()})`;
+
+      // Error box
+      const errorBox = document.getElementById('logModalErrorBox');
+      const errorText = document.getElementById('logModalErrorText');
+      if (item._error) {
+        errorBox.classList.remove('hidden');
+        errorText.innerText = typeof item._error === 'object' ? JSON.stringify(item._error, null, 2) : String(item._error);
+      } else {
+        errorBox.classList.add('hidden');
+      }
+
+      // Caption
+      const captionDiv = document.getElementById('logModalCaption');
+      captionDiv.innerText = item._caption || '(No caption recorded)';
+
+      // Raw JSON
+      document.getElementById('logModalRawJson').innerText = JSON.stringify(item, null, 2);
+
+      const modal = document.getElementById('logDetailModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeLogModal() {
+      const modal = document.getElementById('logDetailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      selectedModalLog = null;
+    }
+
+    function copyModalField(elementId, successMessage) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      copyToClipboard(el.innerText, successMessage);
+    }
+
+    function copyModalRawJson() {
+      if (!selectedModalLog) return;
+      copyToClipboard(JSON.stringify(selectedModalLog, null, 2), 'Raw JSON copied to clipboard!');
+    }
+
+    function copyToClipboard(text, message) {
+      if (!navigator.clipboard) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(message || 'Copied!', 'success');
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(message || 'Copied to clipboard!', 'success');
+      }).catch(() => {
+        showToast('Failed to copy', 'error');
+      });
+    }
+
+    // CSV Export
+    function exportLogsToCsv() {
+      if (!filteredLogs.length) {
+        showToast('No logs match current filters to export', 'warning');
+        return;
+      }
+
+      const headers = [
+        'Platform',
+        'Account / Channel',
+        'Article / Video Title',
+        'Status',
+        'Post / Video ID',
+        'External URL',
+        'Duration',
+        'Published At (UTC)',
+        'Published At (Local)',
+        'Caption',
+        'Error Details'
+      ];
+
+      const csvEscape = (val) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const rows = filteredLogs.map(l => [
+        csvEscape(l._platform),
+        csvEscape(l._account),
+        csvEscape(l._title),
+        csvEscape(l._rawStatus || l._status),
+        csvEscape(l._id),
+        csvEscape(l._url || ''),
+        csvEscape(l._duration),
+        csvEscape(l._createdAt.toISOString()),
+        csvEscape(l._createdAt.toLocaleString()),
+        csvEscape(l._caption || ''),
+        csvEscape(l._error || '')
+      ].join(','));
+
+      const csvContent = '\uFEFF' + [headers.map(csvEscape).join(','), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `publication_audit_logs_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast(`Exported ${filteredLogs.length} logs to CSV`, 'success');
     }
 
     // 7. Diagnostics

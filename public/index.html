@@ -285,18 +285,42 @@
       </div>
     </div>
 
-    <!-- TAB 2: Connected Social Accounts (NEW) -->
+    <!-- TAB 2: Connected Social Accounts -->
     <div id="tabContent-accounts" class="hidden space-y-6">
+      <!-- Top Actions Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-card border border-dark-border rounded-xl p-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center space-x-2">
+            <span>📱 Connected Social Accounts & Channels</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Manage authenticated Facebook Pages, YouTube Channels, and Telegram Channels used by automated pipelines.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="openFbPageModal()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow transition">
+            <span>+</span> <span>Add FB Page</span>
+          </button>
+          <button onclick="openYtChannelModal()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold text-xs shadow transition">
+            <span>+</span> <span>Add YouTube Channel</span>
+          </button>
+          <button onclick="openTgChannelModal()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs shadow transition">
+            <span>+</span> <span>Add Telegram Channel</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Facebook Pages Section -->
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-              <span>Connected Facebook Pages (<span id="countFbPages">5</span>)</span>
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <span>Facebook Pages (<span id="countFbPages">5</span>)</span>
             </h3>
             <p class="text-xs text-slate-400">Stored in <code class="font-mono text-blue-400">facebook_pages</code> collection for Reels & high-CTR first comments.</p>
           </div>
+          <button onclick="openFbPageModal()" class="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center space-x-1">
+            <span>+ Add FB Page</span>
+          </button>
         </div>
         <div id="fbPagesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           <!-- Rendered dynamically -->
@@ -308,13 +332,35 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-              <span class="w-2 h-2 rounded-full bg-red-500"></span>
-              <span>Connected YouTube Channels (<span id="countYtChannels">3</span>)</span>
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+              <span>YouTube Channels (<span id="countYtChannels">3</span>)</span>
             </h3>
             <p class="text-xs text-slate-400">Stored in <code class="font-mono text-red-400">youtube_channels</code> collection with automatic Shorts upload enabled.</p>
           </div>
+          <button onclick="openYtChannelModal()" class="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center space-x-1">
+            <span>+ Add YouTube Channel</span>
+          </button>
         </div>
         <div id="ytChannelsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Telegram Channels Section (NEW) -->
+      <div class="space-y-3 pt-4 border-t border-dark-border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+              <span>Telegram Channels & Groups (<span id="countTgChannels">0</span>)</span>
+            </h3>
+            <p class="text-xs text-slate-400">Stored in <code class="font-mono text-sky-400">telegram_channels</code> collection for instant video & caption broadcasts.</p>
+          </div>
+          <button onclick="openTgChannelModal()" class="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center space-x-1">
+            <span>+ Add Telegram Channel</span>
+          </button>
+        </div>
+        <div id="tgChannelsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <!-- Rendered dynamically -->
         </div>
       </div>
@@ -324,7 +370,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-              <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
               <span>Connected Facebook Groups (<span id="countFbGroups">1</span>)</span>
             </h3>
             <p class="text-xs text-slate-400">Stored in <code class="font-mono text-purple-400">facebook_groups</code> collection for viral cross-sharing.</p>
@@ -688,25 +734,37 @@
           <span class="block font-semibold text-slate-200">Broadcast Destinations</span>
 
           <!-- Facebook -->
-          <div class="flex items-center justify-between">
-            <div>
-              <span class="font-medium text-blue-400">Facebook Reels</span>
-              <p class="text-[10px] text-slate-400">Upload video reels + optional 1st comment</p>
+          <div class="space-y-1.5 border-b border-slate-800 pb-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="font-medium text-blue-400">Facebook Reels</span>
+                <p class="text-[10px] text-slate-400">Upload video reels + optional 1st comment</p>
+              </div>
+              <input type="checkbox" id="formPostFb" onchange="toggleFormDestinationDropdowns()" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
             </div>
-            <input type="checkbox" id="formPostFb" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+            <div id="formFbSelectRow" class="hidden pt-1">
+              <label class="block text-[10px] text-slate-400 mb-0.5">Target Facebook Page:</label>
+              <select id="formTargetPageId" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-white text-[11px] focus:outline-none focus:border-blue-500"></select>
+            </div>
           </div>
 
           <!-- YouTube -->
-          <div class="flex items-center justify-between">
-            <div>
-              <span class="font-medium text-red-400">YouTube Shorts</span>
-              <p class="text-[10px] text-slate-400">Upload to YouTube channel as Shorts</p>
+          <div class="space-y-1.5 border-b border-slate-800 pb-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="font-medium text-red-400">YouTube Shorts</span>
+                <p class="text-[10px] text-slate-400">Upload to YouTube channel as Shorts</p>
+              </div>
+              <input type="checkbox" id="formPostYt" onchange="toggleFormDestinationDropdowns()" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
             </div>
-            <input type="checkbox" id="formPostYt" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+            <div id="formYtSelectRow" class="hidden pt-1">
+              <label class="block text-[10px] text-slate-400 mb-0.5">Target YouTube Channel:</label>
+              <select id="formTargetYtChannelId" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-white text-[11px] focus:outline-none focus:border-blue-500"></select>
+            </div>
           </div>
 
           <!-- TikTok -->
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <div>
               <span class="font-medium text-cyan-400">TikTok</span>
               <p class="text-[10px] text-slate-400">Upload to TikTok direct posting API</p>
@@ -715,12 +773,18 @@
           </div>
 
           <!-- Telegram -->
-          <div class="flex items-center justify-between">
-            <div>
-              <span class="font-medium text-sky-400">Telegram Channel</span>
-              <p class="text-[10px] text-slate-400">Broadcast video file with caption</p>
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="font-medium text-sky-400">Telegram Channel</span>
+                <p class="text-[10px] text-slate-400">Broadcast video file with caption</p>
+              </div>
+              <input type="checkbox" id="formPostTg" onchange="toggleFormDestinationDropdowns()" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
             </div>
-            <input type="checkbox" id="formPostTg" class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+            <div id="formTgSelectRow" class="hidden pt-1">
+              <label class="block text-[10px] text-slate-400 mb-0.5">Target Telegram Channel:</label>
+              <select id="formTargetTgChannelId" class="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-white text-[11px] focus:outline-none focus:border-blue-500"></select>
+            </div>
           </div>
         </div>
 
@@ -933,6 +997,168 @@
     </div>
   </div>
 
+  <!-- MODAL: Add / Edit Facebook Page -->
+  <div id="facebookPageModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="fbPageModalTitle" class="text-base font-bold text-white flex items-center space-x-2">
+          <span>🔵</span> <span>Add Facebook Page</span>
+        </h3>
+        <button onclick="closeFbPageModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+      </div>
+
+      <form id="fbPageForm" onsubmit="saveFacebookPage(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Facebook Page Name *</label>
+          <input type="text" id="fbPageName" required placeholder="e.g. BD News 24/7" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Facebook Page ID *</label>
+          <input type="text" id="fbPageId" required placeholder="e.g. 1405135646008133" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-slate-500 mt-0.5">Numeric Facebook Page ID from Meta Business Suite.</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Page Access Token</label>
+          <textarea id="fbPageToken" rows="3" placeholder="EAAb..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-blue-500"></textarea>
+          <p class="text-[11px] text-slate-500 mt-0.5">Leave blank if using server default FACEBOOK_PAGE_ACCESS_TOKEN.</p>
+        </div>
+
+        <div class="flex items-center space-x-2 pt-1">
+          <input type="checkbox" id="fbPageActive" checked class="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700">
+          <label for="fbPageActive" class="font-medium text-slate-300 select-none">Active (Available for automated publishing)</label>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-end space-x-2">
+          <button type="button" onclick="closeFbPageModal()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition">
+            Cancel
+          </button>
+          <button type="submit" id="btnSaveFbPage" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition">
+            Save Facebook Page
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add / Edit YouTube Channel -->
+  <div id="youtubeChannelModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="ytChannelModalTitle" class="text-base font-bold text-white flex items-center space-x-2">
+          <span>🔴</span> <span>Add YouTube Channel</span>
+        </h3>
+        <button onclick="closeYtChannelModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+      </div>
+
+      <form id="ytChannelForm" onsubmit="saveYouTubeChannel(event)" class="space-y-3.5 text-xs max-h-[80vh] overflow-y-auto pr-1">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Channel Title *</label>
+          <input type="text" id="ytChannelTitle" required placeholder="e.g. BD News 24 Shorts" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">YouTube Channel ID *</label>
+          <input type="text" id="ytChannelId" required placeholder="e.g. UCzWugTo6y2w0Fz_0TRfa1AA" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-slate-500 mt-0.5">24-character YouTube Channel ID starting with UC.</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Handle / Custom URL (Optional)</label>
+          <input type="text" id="ytChannelHandle" placeholder="e.g. @bdnews24site" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">OAuth Refresh Token</label>
+          <textarea id="ytRefreshToken" rows="2" placeholder="1//05xn..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-blue-500"></textarea>
+          <p class="text-[11px] text-slate-500 mt-0.5">Google OAuth refresh token for automated Shorts upload.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Client ID (Optional)</label>
+            <input type="text" id="ytClientId" placeholder="OAuth Client ID" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-[11px] focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Client Secret (Optional)</label>
+            <input type="password" id="ytClientSecret" placeholder="Client Secret" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-[11px] focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-1">
+          <div class="flex items-center space-x-2">
+            <input type="checkbox" id="ytAutoUpload" checked class="w-4 h-4 rounded text-red-600 bg-slate-800 border-slate-700">
+            <label for="ytAutoUpload" class="font-medium text-slate-300 select-none">Auto-upload Shorts enabled</label>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input type="checkbox" id="ytActive" checked class="w-4 h-4 rounded text-red-600 bg-slate-800 border-slate-700">
+            <label for="ytActive" class="font-medium text-slate-300 select-none">Active</label>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-end space-x-2">
+          <button type="button" onclick="closeYtChannelModal()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition">
+            Cancel
+          </button>
+          <button type="submit" id="btnSaveYtChannel" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition">
+            Save YouTube Channel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add / Edit Telegram Channel -->
+  <div id="telegramChannelModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="tgChannelModalTitle" class="text-base font-bold text-white flex items-center space-x-2">
+          <span>✈️</span> <span>Add Telegram Channel</span>
+        </h3>
+        <button onclick="closeTgChannelModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+      </div>
+
+      <form id="tgChannelForm" onsubmit="saveTelegramChannel(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Channel / Group Title *</label>
+          <input type="text" id="tgTitle" required placeholder="e.g. BD News 24 Alerts" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Telegram Chat ID or Channel ID *</label>
+          <input type="text" id="tgChatId" required placeholder="e.g. -1001234567890 or @mychannel" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-slate-500 mt-0.5">Numeric Channel ID (typically begins with -100) or public @username.</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Username / Link (Optional)</label>
+          <input type="text" id="tgUsername" placeholder="e.g. @bdnews24site" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Dedicated Bot Token (Optional)</label>
+          <input type="password" id="tgBotToken" placeholder="Leave blank to use server TELEGRAM_BOT_TOKEN" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-slate-500 mt-0.5">If left blank, server defaults to environment TELEGRAM_BOT_TOKEN.</p>
+        </div>
+
+        <div class="flex items-center space-x-2 pt-1">
+          <input type="checkbox" id="tgActive" checked class="w-4 h-4 rounded text-sky-600 bg-slate-800 border-slate-700">
+          <label for="tgActive" class="font-medium text-slate-300 select-none">Active (Available for automated broadcast)</label>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-end space-x-2">
+          <button type="button" onclick="closeTgChannelModal()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition">
+            Cancel
+          </button>
+          <button type="submit" id="btnSaveTgChannel" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold transition">
+            Save Telegram Channel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm w-full pointer-events-none"></div>
 
@@ -1108,84 +1334,401 @@
     }
 
     // 3. Connected Social Accounts
+    let currentFbPages = [];
+    let currentYtChannels = [];
+    let currentTgChannels = [];
+    let currentFbGroups = [];
+
     async function loadConnectedAccounts() {
       try {
-        const [pagesRes, ytRes, groupsRes] = await Promise.all([
+        const [pagesRes, ytRes, tgRes, groupsRes] = await Promise.all([
           fetch('/api/facebook-pages'),
           fetch('/api/youtube-channels'),
+          fetch('/api/telegram-channels'),
           fetch('/api/facebook-groups'),
         ]);
 
         const pagesData = await pagesRes.json();
         const ytData = await ytRes.json();
+        const tgData = await tgRes.json();
         const groupsData = await groupsRes.json();
 
-        const pages = pagesData.pages || [];
-        const channels = ytData.channels || [];
-        const groups = groupsData.groups || [];
+        currentFbPages = pagesData.pages || [];
+        currentYtChannels = ytData.channels || [];
+        currentTgChannels = tgData.channels || [];
+        currentFbGroups = groupsData.groups || [];
 
-        document.getElementById('countFbPages').innerText = pages.length;
-        document.getElementById('countYtChannels').innerText = channels.length;
-        document.getElementById('countFbGroups').innerText = groups.length;
+        const countFb = document.getElementById('countFbPages');
+        if (countFb) countFb.innerText = currentFbPages.length;
+        const countYt = document.getElementById('countYtChannels');
+        if (countYt) countYt.innerText = currentYtChannels.length;
+        const countTg = document.getElementById('countTgChannels');
+        if (countTg) countTg.innerText = currentTgChannels.length;
+        const countGroups = document.getElementById('countFbGroups');
+        if (countGroups) countGroups.innerText = currentFbGroups.length;
 
         // Render Facebook Pages
-        document.getElementById('fbPagesContainer').innerHTML = pages.map(p => `
-          <div class="p-3.5 bg-dark-card border border-dark-border rounded-xl flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
-                f
+        const fbContainer = document.getElementById('fbPagesContainer');
+        if (fbContainer) {
+          if (!currentFbPages.length) {
+            fbContainer.innerHTML = '<div class="col-span-full p-6 text-center text-slate-500 bg-slate-900/40 rounded-xl border border-slate-800">No Facebook Pages connected. Click "+ Add FB Page" above to add one.</div>';
+          } else {
+            fbContainer.innerHTML = currentFbPages.map(p => `
+              <div class="p-3.5 bg-dark-card border border-dark-border rounded-xl flex items-center justify-between group hover:border-slate-700 transition">
+                <div class="flex items-center space-x-3 truncate">
+                  <div class="w-9 h-9 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    f
+                  </div>
+                  <div class="truncate">
+                    <h4 class="font-bold text-white text-xs truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</h4>
+                    <span class="text-[10px] font-mono text-slate-400 block truncate">ID: ${escapeHtml(p._id)}</span>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-1.5 shrink-0 ml-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.isActive !== false ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500'}">
+                    ${p.isActive !== false ? 'Active' : 'Inactive'}
+                  </span>
+                  <button onclick="editFacebookPage('${escapeHtml(p._id)}')" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs" title="Edit Page">
+                    ✏️
+                  </button>
+                  <button onclick="deleteFacebookPage('${escapeHtml(p._id)}', '${escapeHtml(p.name)}')" class="p-1 rounded bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 transition text-xs" title="Remove Page">
+                    🗑️
+                  </button>
+                </div>
               </div>
-              <div>
-                <h4 class="font-bold text-white text-xs">${escapeHtml(p.name)}</h4>
-                <span class="text-[10px] font-mono text-slate-400 block">ID: ${escapeHtml(p._id)}</span>
-              </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Active
-            </span>
-          </div>
-        `).join('');
+            `).join('');
+          }
+        }
 
         // Render YouTube Channels
-        document.getElementById('ytChannelsContainer').innerHTML = channels.map(c => `
-          <div class="p-3.5 bg-dark-card border border-dark-border rounded-xl flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center font-bold">
-                ▶
+        const ytContainer = document.getElementById('ytChannelsContainer');
+        if (ytContainer) {
+          if (!currentYtChannels.length) {
+            ytContainer.innerHTML = '<div class="col-span-full p-6 text-center text-slate-500 bg-slate-900/40 rounded-xl border border-slate-800">No YouTube Channels connected. Click "+ Add YouTube Channel" above to add one.</div>';
+          } else {
+            ytContainer.innerHTML = currentYtChannels.map(c => `
+              <div class="p-3.5 bg-dark-card border border-dark-border rounded-xl flex items-center justify-between group hover:border-slate-700 transition">
+                <div class="flex items-center space-x-3 truncate">
+                  <div class="w-9 h-9 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    ▶
+                  </div>
+                  <div class="truncate">
+                    <h4 class="font-bold text-white text-xs truncate" title="${escapeHtml(c.title)}">${escapeHtml(c.title)}</h4>
+                    <span class="text-[10px] font-mono text-slate-400 block truncate">${c.customUrl ? escapeHtml(c.customUrl) : `ID: ${escapeHtml(c._id)}`}</span>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-1.5 shrink-0 ml-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold ${c.autoUpload ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-slate-800 text-slate-500'}">
+                    ${c.autoUpload ? 'Shorts' : 'Manual'}
+                  </span>
+                  <button onclick="editYouTubeChannel('${escapeHtml(c._id)}')" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs" title="Edit Channel">
+                    ✏️
+                  </button>
+                  <button onclick="deleteYouTubeChannel('${escapeHtml(c._id)}', '${escapeHtml(c.title)}')" class="p-1 rounded bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 transition text-xs" title="Remove Channel">
+                    🗑️
+                  </button>
+                </div>
               </div>
-              <div>
-                <h4 class="font-bold text-white text-xs">${escapeHtml(c.title)}</h4>
-                <span class="text-[10px] font-mono text-slate-400 block truncate max-w-[150px]">ID: ${escapeHtml(c._id)}</span>
+            `).join('');
+          }
+        }
+
+        // Render Telegram Channels
+        const tgContainer = document.getElementById('tgChannelsContainer');
+        if (tgContainer) {
+          if (!currentTgChannels.length) {
+            tgContainer.innerHTML = '<div class="col-span-full p-6 text-center text-slate-500 bg-slate-900/40 rounded-xl border border-slate-800">No Telegram Channels connected. Click "+ Add Telegram Channel" above to add one.</div>';
+          } else {
+            tgContainer.innerHTML = currentTgChannels.map(t => `
+              <div class="p-3.5 bg-dark-card border border-dark-border rounded-xl flex items-center justify-between group hover:border-slate-700 transition">
+                <div class="flex items-center space-x-3 truncate">
+                  <div class="w-9 h-9 rounded-lg bg-sky-600/20 text-sky-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    ✈️
+                  </div>
+                  <div class="truncate">
+                    <h4 class="font-bold text-white text-xs truncate" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</h4>
+                    <span class="text-[10px] font-mono text-slate-400 block truncate">${t.username ? escapeHtml(t.username) : `ID: ${escapeHtml(t._id)}`}</span>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-1.5 shrink-0 ml-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.isActive !== false ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800 text-slate-500'}">
+                    ${t.isActive !== false ? 'Active' : 'Inactive'}
+                  </span>
+                  <button onclick="editTelegramChannel('${escapeHtml(t._id)}')" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs" title="Edit Telegram Channel">
+                    ✏️
+                  </button>
+                  <button onclick="deleteTelegramChannel('${escapeHtml(t._id)}', '${escapeHtml(t.title)}')" class="p-1 rounded bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 transition text-xs" title="Remove Channel">
+                    🗑️
+                  </button>
+                </div>
               </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
-              c.autoUpload ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-slate-800 text-slate-500'
-            }">
-              ${c.autoUpload ? 'Auto-Upload' : 'Manual'}
-            </span>
-          </div>
-        `).join('');
+            `).join('');
+          }
+        }
 
         // Render Facebook Groups
-        document.getElementById('fbGroupsContainer').innerHTML = groups.map(g => `
-          <div class="p-3.5 bg-dark-card border border-dark-border rounded-xl flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold">
-                👥
+        const groupsContainer = document.getElementById('fbGroupsContainer');
+        if (groupsContainer) {
+          groupsContainer.innerHTML = currentFbGroups.map(g => `
+            <div class="p-3.5 bg-dark-card border border-dark-border rounded-xl flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-sm shrink-0">
+                  👥
+                </div>
+                <div>
+                  <h4 class="font-bold text-white text-xs">${escapeHtml(g.name)}</h4>
+                  <span class="text-[10px] font-mono text-slate-400 block">ID: ${escapeHtml(g._id)}</span>
+                </div>
               </div>
-              <div>
-                <h4 class="font-bold text-white text-xs">${escapeHtml(g.name)}</h4>
-                <span class="text-[10px] font-mono text-slate-400 block">ID: ${escapeHtml(g._id)}</span>
-              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                Auto-Share
+              </span>
             </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              Auto-Share
-            </span>
-          </div>
-        `).join('');
+          `).join('');
+        }
+
+        // Update destination selectors in #channelModal
+        updateFolderDestinationSelectors();
       } catch (e) {
         console.error('Failed loading connected accounts:', e);
       }
+    }
+
+    // Facebook Page Modal Handlers
+    function openFbPageModal(pageData) {
+      document.getElementById('fbPageModalTitle').innerHTML = `<span>🔵</span> <span>${pageData ? 'Edit Facebook Page' : 'Add Facebook Page'}</span>`;
+      document.getElementById('fbPageId').value = pageData?._id || '';
+      document.getElementById('fbPageId').readOnly = Boolean(pageData);
+      document.getElementById('fbPageName').value = pageData?.name || '';
+      document.getElementById('fbPageToken').value = pageData?.accessToken || '';
+      document.getElementById('fbPageActive').checked = pageData?.isActive !== false;
+
+      const modal = document.getElementById('facebookPageModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeFbPageModal() {
+      const modal = document.getElementById('facebookPageModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveFacebookPage(e) {
+      e.preventDefault();
+      const id = document.getElementById('fbPageId').value.trim();
+      const name = document.getElementById('fbPageName').value.trim();
+      const accessToken = document.getElementById('fbPageToken').value.trim();
+      const isActive = document.getElementById('fbPageActive').checked;
+
+      try {
+        const res = await fetch('/api/facebook-pages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, name, accessToken, isActive }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed saving Facebook Page');
+        closeFbPageModal();
+        showToast(data.message || 'Facebook Page saved successfully', 'success');
+        loadConnectedAccounts();
+        loadKpiAndMetrics();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function editFacebookPage(id) {
+      const page = currentFbPages.find(p => p._id === id);
+      if (page) openFbPageModal(page);
+    }
+
+    async function deleteFacebookPage(id, name) {
+      if (!confirm(`Are you sure you want to remove Facebook Page "${name}" (${id})?`)) return;
+      try {
+        const res = await fetch(`/api/facebook-pages/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed deleting page');
+        showToast(`Facebook Page "${name}" removed`, 'info');
+        loadConnectedAccounts();
+        loadKpiAndMetrics();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // YouTube Channel Modal Handlers
+    function openYtChannelModal(chanData) {
+      document.getElementById('ytChannelModalTitle').innerHTML = `<span>🔴</span> <span>${chanData ? 'Edit YouTube Channel' : 'Add YouTube Channel'}</span>`;
+      document.getElementById('ytChannelId').value = chanData?._id || '';
+      document.getElementById('ytChannelId').readOnly = Boolean(chanData);
+      document.getElementById('ytChannelTitle').value = chanData?.title || '';
+      document.getElementById('ytChannelHandle').value = chanData?.customUrl || '';
+      document.getElementById('ytRefreshToken').value = chanData?.refreshToken || '';
+      document.getElementById('ytClientId').value = chanData?.clientId || '';
+      document.getElementById('ytClientSecret').value = chanData?.clientSecret || '';
+      document.getElementById('ytAutoUpload').checked = chanData?.autoUpload !== false;
+      document.getElementById('ytActive').checked = chanData?.isActive !== false;
+
+      const modal = document.getElementById('youtubeChannelModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeYtChannelModal() {
+      const modal = document.getElementById('youtubeChannelModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveYouTubeChannel(e) {
+      e.preventDefault();
+      const id = document.getElementById('ytChannelId').value.trim();
+      const title = document.getElementById('ytChannelTitle').value.trim();
+      const customUrl = document.getElementById('ytChannelHandle').value.trim();
+      const refreshToken = document.getElementById('ytRefreshToken').value.trim();
+      const clientId = document.getElementById('ytClientId').value.trim();
+      const clientSecret = document.getElementById('ytClientSecret').value.trim();
+      const autoUpload = document.getElementById('ytAutoUpload').checked;
+      const isActive = document.getElementById('ytActive').checked;
+
+      try {
+        const res = await fetch('/api/youtube-channels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, title, customUrl, refreshToken, clientId, clientSecret, autoUpload, isActive }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed saving YouTube Channel');
+        closeYtChannelModal();
+        showToast(data.message || 'YouTube Channel saved successfully', 'success');
+        loadConnectedAccounts();
+        loadKpiAndMetrics();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function editYouTubeChannel(id) {
+      const chan = currentYtChannels.find(c => c._id === id);
+      if (chan) openYtChannelModal(chan);
+    }
+
+    async function deleteYouTubeChannel(id, title) {
+      if (!confirm(`Are you sure you want to remove YouTube Channel "${title}" (${id})?`)) return;
+      try {
+        const res = await fetch(`/api/youtube-channels/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed deleting channel');
+        showToast(`YouTube Channel "${title}" removed`, 'info');
+        loadConnectedAccounts();
+        loadKpiAndMetrics();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Telegram Channel Modal Handlers
+    function openTgChannelModal(tgData) {
+      document.getElementById('tgChannelModalTitle').innerHTML = `<span>✈️</span> <span>${tgData ? 'Edit Telegram Channel' : 'Add Telegram Channel'}</span>`;
+      document.getElementById('tgChatId').value = tgData?._id || '';
+      document.getElementById('tgChatId').readOnly = Boolean(tgData);
+      document.getElementById('tgTitle').value = tgData?.title || '';
+      document.getElementById('tgUsername').value = tgData?.username || '';
+      document.getElementById('tgBotToken').value = tgData?.botToken || '';
+      document.getElementById('tgActive').checked = tgData?.isActive !== false;
+
+      const modal = document.getElementById('telegramChannelModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeTgChannelModal() {
+      const modal = document.getElementById('telegramChannelModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveTelegramChannel(e) {
+      e.preventDefault();
+      const id = document.getElementById('tgChatId').value.trim();
+      const title = document.getElementById('tgTitle').value.trim();
+      const username = document.getElementById('tgUsername').value.trim();
+      const botToken = document.getElementById('tgBotToken').value.trim();
+      const isActive = document.getElementById('tgActive').checked;
+
+      try {
+        const res = await fetch('/api/telegram-channels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, title, username, botToken, isActive }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed saving Telegram Channel');
+        closeTgChannelModal();
+        showToast(data.message || 'Telegram Channel saved successfully', 'success');
+        loadConnectedAccounts();
+        loadKpiAndMetrics();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function editTelegramChannel(id) {
+      const tg = currentTgChannels.find(t => t._id === id);
+      if (tg) openTgChannelModal(tg);
+    }
+
+    async function deleteTelegramChannel(id, title) {
+      if (!confirm(`Are you sure you want to remove Telegram Channel "${title}" (${id})?`)) return;
+      try {
+        const res = await fetch(`/api/telegram-channels/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed deleting telegram channel');
+        showToast(`Telegram Channel "${title}" removed`, 'info');
+        loadConnectedAccounts();
+        loadKpiAndMetrics();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function updateFolderDestinationSelectors() {
+      const fbSelect = document.getElementById('formTargetPageId');
+      if (fbSelect) {
+        fbSelect.innerHTML = currentFbPages.map(p => `
+          <option value="${escapeHtml(p._id)}">${escapeHtml(p.name)} (${escapeHtml(p._id)})</option>
+        `).join('') || '<option value="">No Facebook pages added</option>';
+      }
+
+      const ytSelect = document.getElementById('formTargetYtChannelId');
+      if (ytSelect) {
+        ytSelect.innerHTML = currentYtChannels.map(c => `
+          <option value="${escapeHtml(c._id)}">${escapeHtml(c.title)} ${c.customUrl ? `(${escapeHtml(c.customUrl)})` : ''}</option>
+        `).join('') || '<option value="">No YouTube channels added</option>';
+      }
+
+      const tgSelect = document.getElementById('formTargetTgChannelId');
+      if (tgSelect) {
+        tgSelect.innerHTML = currentTgChannels.map(t => `
+          <option value="${escapeHtml(t._id)}">${escapeHtml(t.title)} (${escapeHtml(t._id)})</option>
+        `).join('') || '<option value="">Default Server Telegram Channel</option>';
+      }
+    }
+
+    function toggleFormDestinationDropdowns() {
+      const fbChecked = document.getElementById('formPostFb')?.checked;
+      const ytChecked = document.getElementById('formPostYt')?.checked;
+      const tgChecked = document.getElementById('formPostTg')?.checked;
+
+      const fbRow = document.getElementById('formFbSelectRow');
+      if (fbRow) fbRow.classList.toggle('hidden', !fbChecked);
+
+      const ytRow = document.getElementById('formYtSelectRow');
+      if (ytRow) ytRow.classList.toggle('hidden', !ytChecked);
+
+      const tgRow = document.getElementById('formTgSelectRow');
+      if (tgRow) tgRow.classList.toggle('hidden', !tgChecked);
     }
 
     // 4. Ingested News Articles
@@ -1998,6 +2541,18 @@
       document.getElementById('formFirstComment').value = channelData?.firstCommentText || '';
       document.getElementById('formIsActive').checked = channelData?.isActive !== false;
 
+      updateFolderDestinationSelectors();
+      if (channelData?.pageId && document.getElementById('formTargetPageId')) {
+        document.getElementById('formTargetPageId').value = channelData.pageId;
+      }
+      if (channelData?.youtubeChannelId && document.getElementById('formTargetYtChannelId')) {
+        document.getElementById('formTargetYtChannelId').value = channelData.youtubeChannelId;
+      }
+      if (channelData?.telegramChannelId && document.getElementById('formTargetTgChannelId')) {
+        document.getElementById('formTargetTgChannelId').value = channelData.telegramChannelId;
+      }
+      toggleFormDestinationDropdowns();
+
       const modal = document.getElementById('channelModal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -2014,12 +2569,22 @@
       const id = document.getElementById('formChannelId').value;
       const isEdit = Boolean(id);
 
+      const targetPageSelect = document.getElementById('formTargetPageId');
+      const targetPageId = document.getElementById('formPostFb').checked ? (targetPageSelect?.value || '') : '';
+      const targetPageName = targetPageSelect?.options[targetPageSelect.selectedIndex]?.text?.replace(/\s*\([^)]*\)$/, '') || '';
+      const targetYtId = document.getElementById('formPostYt').checked ? (document.getElementById('formTargetYtChannelId')?.value || '') : '';
+      const targetTgId = document.getElementById('formPostTg').checked ? (document.getElementById('formTargetTgChannelId')?.value || '') : '';
+
       const payload = {
         name: document.getElementById('formName').value.trim(),
         folderUrlOrId: document.getElementById('formFolder').value.trim(),
+        pageId: targetPageId,
+        pageName: targetPageName,
+        youtubeChannelId: targetYtId,
         autoPostYouTube: document.getElementById('formPostYt').checked,
         autoPostTikTok: document.getElementById('formPostTt').checked,
         autoPostTelegram: document.getElementById('formPostTg').checked,
+        telegramChannelId: targetTgId,
         orderStrategy: document.getElementById('formOrderStrategy').value,
         deleteAction: document.getElementById('formDeleteAction').value,
         deleteAfterPosting: document.getElementById('formDeleteAction').value !== 'none',

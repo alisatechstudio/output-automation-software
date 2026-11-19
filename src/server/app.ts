@@ -489,6 +489,8 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
         youtubeChannels,
         facebookGroups,
         gdriveConfigs,
+        telegramChannelsCount,
+        telegramChannels,
       ] = await Promise.all([
         db.collection('reel_logs').countDocuments(),
         db.collection('reel_logs').countDocuments({ status: 'success' }),
@@ -508,6 +510,8 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
         db.collection('youtube_channels').find({}).toArray(),
         db.collection('facebook_groups').find({}).toArray(),
         db.collection('gdrive_reel_configs').find({}).toArray(),
+        db.collection('telegram_channels').countDocuments().catch(() => 0),
+        db.collection('telegram_channels').find({}).toArray().catch(() => []),
       ]);
 
       const totalPostedInConfigs = gdriveConfigs.reduce(
@@ -529,6 +533,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
           infrastructure: {
             facebookPagesCount: pagesCount,
             youtubeChannelsCount: channelsCount,
+            telegramChannelsCount: telegramChannelsCount || 0,
             facebookGroupsCount: groupsCount,
             gdrivePipelinesCount: configsCount,
             totalMemoryTrackedVideos: totalPostedInConfigs,
@@ -539,6 +544,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
           assets: {
             facebookPages,
             youtubeChannels,
+            telegramChannels: telegramChannels || [],
             facebookGroups,
             gdriveConfigs,
           },
@@ -549,7 +555,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
     }
   });
 
-  // Assets direct endpoints
+  // Assets direct endpoints & CRUD for Social Accounts & Channels
   app.get('/api/facebook-pages', async (_req: Request, res: Response) => {
     try {
       if (!isDbConnected()) return res.json({ success: true, pages: [] });
@@ -560,11 +566,162 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
     }
   });
 
+  app.post('/api/facebook-pages', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.status(503).json({ success: false, error: 'Database not connected' });
+      const { id, name, accessToken, isActive = true, tokenExpiresAt } = req.body;
+      if (!id || !name) {
+        return res.status(400).json({ success: false, error: 'Page ID and Page Name are required' });
+      }
+      const db = getDatabase();
+      const now = new Date();
+      await db.collection<any>('facebook_pages').updateOne(
+        { _id: String(id).trim() },
+        {
+          $set: {
+            name: String(name).trim(),
+            ...(accessToken ? { accessToken: String(accessToken).trim() } : {}),
+            isActive: Boolean(isActive),
+            tokenExpiresAt: tokenExpiresAt ? new Date(tokenExpiresAt) : null,
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
+          },
+        },
+        { upsert: true }
+      );
+      res.json({ success: true, message: `Facebook Page "${name}" saved successfully` });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.delete('/api/facebook-pages/:id', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.status(503).json({ success: false, error: 'Database not connected' });
+      const db = getDatabase();
+      const result = await db.collection<any>('facebook_pages').deleteOne({ _id: req.params.id });
+      res.json({ success: true, deleted: result.deletedCount > 0 });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   app.get('/api/youtube-channels', async (_req: Request, res: Response) => {
     try {
       if (!isDbConnected()) return res.json({ success: true, channels: [] });
-      const channels = await getDatabase().collection('youtube_channels').find({}).toArray();
+      const channels = await getDatabase().collection<any>('youtube_channels').find({}).toArray();
       res.json({ success: true, count: channels.length, channels });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/youtube-channels', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.status(503).json({ success: false, error: 'Database not connected' });
+      const {
+        id,
+        title,
+        customUrl,
+        refreshToken,
+        clientId,
+        clientSecret,
+        targetPageId,
+        autoUpload = true,
+        isActive = true,
+      } = req.body;
+      if (!id || !title) {
+        return res.status(400).json({ success: false, error: 'Channel ID and Title are required' });
+      }
+      const db = getDatabase();
+      const now = new Date();
+      await db.collection<any>('youtube_channels').updateOne(
+        { _id: String(id).trim() },
+        {
+          $set: {
+            title: String(title).trim(),
+            customUrl: customUrl ? String(customUrl).trim() : '',
+            ...(refreshToken ? { refreshToken: String(refreshToken).trim() } : {}),
+            ...(clientId ? { clientId: String(clientId).trim() } : {}),
+            ...(clientSecret ? { clientSecret: String(clientSecret).trim() } : {}),
+            targetPageId: targetPageId ? String(targetPageId).trim() : '',
+            autoUpload: Boolean(autoUpload),
+            isActive: Boolean(isActive),
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
+            videoCount: '0',
+          },
+        },
+        { upsert: true }
+      );
+      res.json({ success: true, message: `YouTube Channel "${title}" saved successfully` });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.delete('/api/youtube-channels/:id', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.status(503).json({ success: false, error: 'Database not connected' });
+      const db = getDatabase();
+      const result = await db.collection<any>('youtube_channels').deleteOne({ _id: req.params.id });
+      res.json({ success: true, deleted: result.deletedCount > 0 });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/telegram-channels', async (_req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.json({ success: true, channels: [] });
+      const channels = await getDatabase().collection<any>('telegram_channels').find({}).toArray();
+      res.json({ success: true, count: channels.length, channels });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/telegram-channels', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.status(503).json({ success: false, error: 'Database not connected' });
+      const { id, title, username, botToken, isActive = true } = req.body;
+      if (!id || !title) {
+        return res.status(400).json({ success: false, error: 'Telegram Chat/Channel ID and Title are required' });
+      }
+      const db = getDatabase();
+      const now = new Date();
+      await db.collection<any>('telegram_channels').updateOne(
+        { _id: String(id).trim() },
+        {
+          $set: {
+            title: String(title).trim(),
+            username: username ? String(username).trim() : '',
+            ...(botToken ? { botToken: String(botToken).trim() } : {}),
+            isActive: Boolean(isActive),
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
+          },
+        },
+        { upsert: true }
+      );
+      res.json({ success: true, message: `Telegram Channel "${title}" saved successfully` });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.delete('/api/telegram-channels/:id', async (req: Request, res: Response) => {
+    try {
+      if (!isDbConnected()) return res.status(503).json({ success: false, error: 'Database not connected' });
+      const db = getDatabase();
+      const result = await db.collection<any>('telegram_channels').deleteOne({ _id: req.params.id });
+      res.json({ success: true, deleted: result.deletedCount > 0 });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

@@ -38,6 +38,16 @@ export interface FacebookGroup {
   updatedAt: Date;
 }
 
+export interface TelegramChannel {
+  _id: string; // Chat ID or Channel ID e.g. -100xxxxxxxx or @channel
+  title: string;
+  username?: string;
+  botToken?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface GroupShareRecord {
   groupId: string;
   groupName: string;

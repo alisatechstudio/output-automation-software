@@ -1,9 +1,9 @@
-import express, { Request, Response } from 'express';
+import express, { Express, Request, Response } from 'express';
 import { OutputPipelineService } from '../pipeline/output-pipeline.js';
 import { isDbConnected, getDatabase } from '../db/index.js';
 import { config } from '../config/env.js';
 
-export function createOutputServer(pipeline: OutputPipelineService) {
+export function createOutputServer(pipeline: OutputPipelineService): Express {
   const app = express();
 
   app.use(express.json());

@@ -61,6 +61,14 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
         driveAuthMode = 'api_key';
       }
 
+      const detectedStorageKeys: string[] = [];
+      ['MONGODB_URI', 'MONGODB_URL', 'MONGO_URL', 'DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_PRISMA_URL', 'KV_URL', 'KV_REST_API_URL', 'BLOB_READ_WRITE_TOKEN'].forEach(k => {
+        if (process.env[k]) detectedStorageKeys.push(k);
+      });
+
+      const isPostgresDetected = Boolean(process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
+      const isMongoDetected = Boolean(process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URL || (process.env.DATABASE_URL?.startsWith('mongodb')));
+
       res.json({
         success: true,
         environment: {
@@ -72,6 +80,16 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
           connected: dbConnected,
           error: lastErr,
           dbName: config.MONGODB_DB_NAME,
+          vercelStorage: {
+            detectedKeys: detectedStorageKeys,
+            isMongoDetected,
+            isPostgresDetected,
+            note: isPostgresDetected && !isMongoDetected
+              ? 'Warning: Vercel Postgres was detected, but this application requires MongoDB Atlas for document storage.'
+              : detectedStorageKeys.length === 0
+              ? 'No storage environment variables detected. If you created a database in Vercel Storage, make sure to click "Connect Project" on the database page.'
+              : 'Database storage variables detected.',
+          },
         },
         integrations: {
           googleDrive: {
@@ -115,12 +133,25 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
   app.post('/api/db/connect', async (req: Request, res: Response) => {
     try {
       const customUri = (req.body?.uri || '').trim();
-      const targetUri = customUri || process.env.MONGODB_URI || config.MONGODB_URI;
+      const targetUri =
+        customUri ||
+        process.env.MONGODB_URI ||
+        process.env.MONGODB_URL ||
+        process.env.MONGO_URL ||
+        (process.env.DATABASE_URL?.startsWith('mongodb') ? process.env.DATABASE_URL : '') ||
+        config.MONGODB_URI;
 
       if (!targetUri || targetUri.includes('127.0.0.1') || targetUri.includes('localhost')) {
+        const hasPg = Boolean(process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
+        if (hasPg) {
+          return res.status(400).json({
+            success: false,
+            error: 'Vercel Postgres (POSTGRES_URL) is connected to this project, but Output Automation requires a MongoDB database (MongoDB Atlas in Vercel Storage) for JSON document collections.',
+          });
+        }
         return res.status(400).json({
           success: false,
-          error: 'No cloud MongoDB URI detected. On Vercel, localhost (127.0.0.1) does not exist. Please configure MONGODB_URI in Vercel Project Settings with your cloud MongoDB Atlas connection string (mongodb+srv://...).',
+          error: 'No MongoDB URI detected in this deployment. If your database is already in Vercel Storage, make sure to click "Connect Project" on the database page in Vercel to link it to output-automation-software, then trigger a Redeploy.',
         });
       }
 

@@ -14,7 +14,11 @@ export function getLastDbError(): string | null {
 }
 
 export async function initDatabase(
-  uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017',
+  uri = process.env.MONGODB_URI ||
+    process.env.MONGODB_URL ||
+    process.env.MONGO_URL ||
+    (process.env.DATABASE_URL?.startsWith('mongodb') ? process.env.DATABASE_URL : '') ||
+    'mongodb://127.0.0.1:27017',
   dbName = process.env.MONGODB_DB_NAME || 'news_automation'
 ): Promise<Db> {
   if (dbInstance) {

@@ -7,9 +7,16 @@ let cachedApp: any = null;
 
 export default async function handler(req: any, res: any) {
   try {
-    if (process.env.MONGODB_URI && !isDbConnected()) {
+    const candidateUri =
+      process.env.MONGODB_URI ||
+      process.env.MONGODB_URL ||
+      process.env.MONGO_URL ||
+      (process.env.DATABASE_URL?.startsWith('mongodb') ? process.env.DATABASE_URL : '') ||
+      config.MONGODB_URI;
+
+    if (candidateUri && !candidateUri.includes('127.0.0.1') && !isDbConnected()) {
       try {
-        await initDatabase(process.env.MONGODB_URI, process.env.MONGODB_DB_NAME || 'news_automation');
+        await initDatabase(candidateUri, process.env.MONGODB_DB_NAME || 'news_automation');
       } catch (dbErr: any) {
         console.warn('[Vercel Output API] MongoDB connection note:', dbErr.message);
       }

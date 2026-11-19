@@ -539,6 +539,58 @@
     </div>
   </div>
 
+  <!-- MODAL: Connect MongoDB -->
+  <div id="dbModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 border-b border-dark-border flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <span>🍃 Connect MongoDB</span>
+        </h3>
+        <button onclick="closeDbModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <form id="dbConnectForm" onsubmit="connectCustomDatabase(event)" class="px-6 py-4 space-y-4 text-xs">
+        <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 space-y-1">
+          <div class="font-bold flex items-center space-x-1">
+            <span>⚠️</span>
+            <span>Why did connection fail?</span>
+          </div>
+          <p class="text-[11px] text-amber-200/80 leading-relaxed">
+            Vercel is a serverless cloud environment — <code class="font-mono bg-black/30 px-1 py-0.5 rounded">127.0.0.1</code> (localhost) does not exist in the cloud. You must use a remote <strong>MongoDB Atlas</strong> cloud cluster URI.
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">MongoDB Connection String (URI)</label>
+          <input type="password" id="inputMongoUri" required placeholder="mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-slate-400 mt-1">Free MongoDB Atlas clusters or self-hosted MongoDB URIs are supported.</p>
+        </div>
+
+        <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-slate-400 space-y-1">
+          <span class="font-bold text-slate-300 block text-[11px]">💡 Permanent Configuration on Vercel:</span>
+          <p class="text-[11px] leading-relaxed">
+            For permanent connection across all requests, add this in your <a href="https://vercel.com/dashboard" target="_blank" class="text-blue-400 underline">Vercel Dashboard</a> &rarr; <strong>Project Settings &rarr; Environment Variables</strong> as:
+          </p>
+          <div class="font-mono text-emerald-400 bg-black/40 p-1.5 rounded text-[10px]">
+            Key: MONGODB_URI<br>
+            Value: mongodb+srv://...
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-dark-border flex justify-end space-x-2">
+          <button type="button" onclick="closeDbModal()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition">
+            Cancel
+          </button>
+          <button type="submit" id="btnConnectDbSubmit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow transition">
+            Test & Connect Now
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm w-full pointer-events-none"></div>
 
@@ -1035,19 +1087,49 @@
       if (ch) openChannelModal(ch);
     }
 
+    function openDbModal() {
+      const modal = document.getElementById('dbModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeDbModal() {
+      const modal = document.getElementById('dbModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
     async function reconnectDatabase() {
-      showToast('Attempting to connect to MongoDB...', 'info');
+      openDbModal();
+    }
+
+    async function connectCustomDatabase(e) {
+      e.preventDefault();
+      const uri = document.getElementById('inputMongoUri').value.trim();
+      const btn = document.getElementById('btnConnectDbSubmit');
+      btn.disabled = true;
+      btn.innerText = 'Connecting...';
+
+      showToast('Testing MongoDB connection...', 'info');
       try {
-        const res = await fetch('/api/db/connect', { method: 'POST' });
+        const res = await fetch('/api/db/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uri })
+        });
         const data = await res.json();
         if (data.success) {
           showToast(data.message, 'success');
+          closeDbModal();
           loadAllData();
         } else {
           showToast(data.error || 'Connection failed', 'error');
         }
-      } catch (e) {
-        showToast('DB connection request failed', 'error');
+      } catch (err) {
+        showToast('DB connection request failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Test & Connect Now';
       }
     }
 

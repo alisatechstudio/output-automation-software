@@ -112,16 +112,20 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
   });
 
   // Reconnect DB on-demand
-  app.post('/api/db/connect', async (_req: Request, res: Response) => {
+  app.post('/api/db/connect', async (req: Request, res: Response) => {
     try {
-      if (isDbConnected()) {
-        return res.json({ success: true, message: 'Database is already connected.' });
+      const customUri = (req.body?.uri || '').trim();
+      const targetUri = customUri || process.env.MONGODB_URI || config.MONGODB_URI;
+
+      if (!targetUri || targetUri.includes('127.0.0.1') || targetUri.includes('localhost')) {
+        return res.status(400).json({
+          success: false,
+          error: 'No cloud MongoDB URI detected. On Vercel, localhost (127.0.0.1) does not exist. Please configure MONGODB_URI in Vercel Project Settings with your cloud MongoDB Atlas connection string (mongodb+srv://...).',
+        });
       }
-      if (!config.MONGODB_URI) {
-        return res.status(400).json({ success: false, error: 'MONGODB_URI environment variable is not configured.' });
-      }
-      await initDatabase(config.MONGODB_URI, config.MONGODB_DB_NAME);
-      res.json({ success: true, message: 'Connected to MongoDB successfully!' });
+
+      await initDatabase(targetUri, config.MONGODB_DB_NAME);
+      res.json({ success: true, message: `Connected to MongoDB database (${config.MONGODB_DB_NAME}) successfully!` });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

@@ -9,7 +9,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  app.get(['/', '/health'], (_req: Request, res: Response) => {
+  app.get(['/', '/health', '/api', '/api/index', '/api/health'], (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       service: 'Output Automation (Google Drive -> Facebook / YouTube / TikTok / Telegram)',

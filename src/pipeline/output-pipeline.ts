@@ -270,7 +270,20 @@ export class OutputPipelineService {
         // 2. Prepare captions, hashtags & article link
         const fileTags = this.scanner.extractHashtags(targetVideo.name);
         const customUserTags = [channel.customHashtags, ...fileTags].filter(Boolean).join(' ');
-        const isEnglish = isEnglishText(targetVideo.cleanTitle) || isEnglishText(channel.name);
+
+        // Detect language based on the actual video title (do not use channel name, as Bengali videos may be under English channel names)
+        const isEnglish = isEnglishText(targetVideo.cleanTitle);
+
+        // Determine if this channel or video is news-related
+        const channelNameLower = (channel.name || '').toLowerCase();
+        const pageNameLower = (channel.pageName || '').toLowerCase();
+        const isNewsChannel =
+          channelNameLower.includes('news') ||
+          pageNameLower.includes('news') ||
+          channel.category === 'news' ||
+          channel.pageId === '1405135646008133' || // BD News 24/7
+          channel.pageId === '1526917347161119' || // Trending News World
+          channel.pageId === '1302276172975819';   // হক কথা
 
         const hashtags = generateGDriveReelHashtags({
           videoTitle: targetVideo.cleanTitle,
@@ -278,6 +291,7 @@ export class OutputPipelineService {
           category: channel.category,
           userTags: customUserTags,
           isEnglish,
+          isNews: isNewsChannel,
         });
 
         const caption =
@@ -301,8 +315,14 @@ export class OutputPipelineService {
             }
           } catch {}
         }
-        if (!newsUrl) {
-          newsUrl = isEnglish ? 'https://trendingnews.world' : 'https://bdnews.site';
+
+        // Only assign fallback news domains for authentic news channels
+        if (!newsUrl && isNewsChannel) {
+          if (channel.pageId === '1526917347161119' || channelNameLower.includes('trending')) {
+            newsUrl = 'https://trendingnews.world';
+          } else {
+            newsUrl = isEnglish ? 'https://trendingnews.world' : 'https://bdnews.site';
+          }
         }
 
         const publishStatus: ChannelPublishResult['publishedTo'] = {};
@@ -340,11 +360,23 @@ export class OutputPipelineService {
 
             let commentId = '';
             try {
-              const formattedComment = this.fbClient.formatComment(
-                newsUrl,
-                channel.firstCommentText || config.DEFAULT_COMMENT_FORMAT,
-                isEnglish
-              );
+              let formattedComment = '';
+              // 1. If channel has custom firstCommentText, format and publish it
+              if (channel.firstCommentText?.trim()) {
+                formattedComment = this.fbClient.formatComment(
+                  newsUrl,
+                  channel.firstCommentText.trim(),
+                  isEnglish
+                );
+              } else if (newsUrl) {
+                // 2. Only use default news CTA if there is an actual newsUrl to link to
+                formattedComment = this.fbClient.formatComment(
+                  newsUrl,
+                  config.DEFAULT_COMMENT_FORMAT,
+                  isEnglish
+                );
+              }
+
               const commentTarget = fbVideoId || fbPostId;
               if (formattedComment && commentTarget) {
                 const cRes = await this.fbClient.publishComment(
@@ -356,7 +388,9 @@ export class OutputPipelineService {
                 );
                 commentId = cRes.commentId;
               }
-            } catch {}
+            } catch (commentErr: any) {
+              console.warn(`[OutputPipeline] Comment note: ${commentErr.message}`);
+            }
 
             publishStatus.facebook = { success: true, videoId: fbVideoId, postId: fbPostId, commentId };
             console.log(`✓ [OutputPipeline] Facebook Reel published! (Video ID: ${fbVideoId})`);

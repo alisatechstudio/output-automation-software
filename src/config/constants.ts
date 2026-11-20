@@ -22,42 +22,72 @@ export interface GenerateGDriveHashtagsOptions {
   userTags?: string;
   isEnglish?: boolean;
   targetCount?: number;
+  isNews?: boolean;
 }
 
 export function generateGDriveReelHashtags(options?: GenerateGDriveHashtagsOptions): string {
   const targetCount = options?.targetCount ?? 15;
   const title = (options?.videoTitle || '').trim();
-  const isEnglish = options?.isEnglish || isEnglishText(title);
+  const isEnglish = options?.isEnglish ?? isEnglishText(title);
+  const isNews = options?.isNews ?? false;
 
-  const baseTags = isEnglish
-    ? [
-        '#Shorts',
-        '#TrendingNews',
-        '#BreakingNews',
-        '#ViralNews',
-        '#WorldNews',
-        '#NewsUpdate',
-        '#Headlines',
-        '#TopStories',
-        '#Trending',
-        '#Viral',
-        '#FYP',
-        '#Explore',
-      ]
-    : [
-        '#Shorts',
-        '#রিলস',
-        '#ব্রেকিংনিউজ',
-        '#বাংলাদেশ',
-        '#আজকেরখবর',
-        '#ভাইরালভিডিও',
-        '#bdnews',
-        '#banglanews',
-        '#viralreels',
-        '#trending',
-        '#fbreels',
-        '#reelsvideo',
-      ];
+  let baseTags: string[];
+  if (isNews) {
+    baseTags = isEnglish
+      ? [
+          '#Shorts',
+          '#TrendingNews',
+          '#BreakingNews',
+          '#ViralNews',
+          '#WorldNews',
+          '#NewsUpdate',
+          '#Headlines',
+          '#TopStories',
+          '#Trending',
+          '#Viral',
+          '#FYP',
+          '#Explore',
+        ]
+      : [
+          '#Shorts',
+          '#রিলস',
+          '#ব্রেকিংনিউজ',
+          '#বাংলাদেশ',
+          '#আজকেরখবর',
+          '#ভাইরালভিডিও',
+          '#bdnews',
+          '#banglanews',
+          '#viralreels',
+          '#trending',
+          '#fbreels',
+          '#reelsvideo',
+        ];
+  } else {
+    baseTags = isEnglish
+      ? [
+          '#Shorts',
+          '#Viral',
+          '#Trending',
+          '#Explore',
+          '#FYP',
+          '#ForYou',
+          '#Reels',
+          '#ReelsFB',
+          '#ViralVideo',
+          '#Entertainment',
+        ]
+      : [
+          '#Shorts',
+          '#রিলস',
+          '#ভাইরালভিডিও',
+          '#বিনোদন',
+          '#trending',
+          '#viral',
+          '#fbreels',
+          '#reelsvideo',
+          '#foryou',
+        ];
+  }
 
   const userTags = (options?.userTags || '')
     .split(/\s+/)

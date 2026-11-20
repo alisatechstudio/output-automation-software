@@ -73,7 +73,10 @@ export const config: OutputAppConfig = {
     process.env.GOOGLE_REFRESH_TOKEN ||
     process.env.GDRIVE_REFRESH_TOKEN ||
     process.env.YOUTUBE_REFRESH_TOKEN,
-  GOOGLE_DRIVE_API_KEY: process.env.GOOGLE_DRIVE_API_KEY || process.env.GDRIVE_API_KEY,
+  GOOGLE_DRIVE_API_KEY:
+    process.env.GOOGLE_DRIVE_API_KEY ||
+    process.env.GDRIVE_API_KEY ||
+    'AIzaSyBNHbV-WItof0jq2j32oj3MFCHOYHfdkxw',
   GDRIVE_FOLDER_ID: process.env.GDRIVE_FOLDER_ID || '',
 
   FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID,

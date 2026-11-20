@@ -196,17 +196,31 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
       }
 
       let postedIds: string[] = [];
+      let apiKeyOverride: string | undefined = (req.query.apiKey as string) || undefined;
       const channelId = req.query.channelId as string;
-      if (channelId && isDbConnected()) {
+
+      if (isDbConnected()) {
         const db = getDatabase();
-        const ch = await db.collection<any>('gdrive_reel_configs').findOne({ _id: channelId });
-        if (ch && Array.isArray(ch.postedVideoIds)) {
-          postedIds = ch.postedVideoIds;
+        if (channelId) {
+          const ch = await db.collection<any>('gdrive_reel_configs').findOne({ _id: channelId });
+          if (ch) {
+            if (Array.isArray(ch.postedVideoIds)) postedIds = ch.postedVideoIds;
+            if (!apiKeyOverride && ch.apiKey) apiKeyOverride = ch.apiKey;
+          }
+        } else {
+          const targetFid = pipeline.getScanner().extractFolderId(folderInput);
+          const ch = await db.collection<any>('gdrive_reel_configs').findOne({
+            $or: [{ folderId: targetFid }, { folderUrlOrId: { $regex: targetFid } }],
+          });
+          if (ch) {
+            if (Array.isArray(ch.postedVideoIds)) postedIds = ch.postedVideoIds;
+            if (!apiKeyOverride && ch.apiKey) apiKeyOverride = ch.apiKey;
+          }
         }
       }
 
       const scanner = pipeline.getScanner();
-      const result = await scanner.scanFolder(folderInput, postedIds);
+      const result = await scanner.scanFolder(folderInput, postedIds, apiKeyOverride);
       res.json({ success: true, scan: result });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });

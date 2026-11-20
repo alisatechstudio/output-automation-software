@@ -119,7 +119,8 @@ export class GoogleDriveScanner {
 
   public async scanFolder(
     folderInput: string,
-    postedVideoIds: string[] = []
+    postedVideoIds: string[] = [],
+    apiKeyOverride?: string
   ): Promise<GDriveScanResult> {
     const cleanFolderId = this.extractFolderId(folderInput || config.GDRIVE_FOLDER_ID || '');
     if (!cleanFolderId) {
@@ -137,7 +138,7 @@ export class GoogleDriveScanner {
 
     // 1. Scan remote Drive folder if credentials exist
     const oauthToken = await this.getOAuthToken();
-    const apiKey = config.GOOGLE_DRIVE_API_KEY;
+    const apiKey = apiKeyOverride || config.GOOGLE_DRIVE_API_KEY;
 
     if (oauthToken || apiKey) {
       try {
@@ -252,7 +253,8 @@ export class GoogleDriveScanner {
 
   public async downloadVideoBuffer(
     video: GDriveVideoItem,
-    folderId: string
+    folderId: string,
+    apiKeyOverride?: string
   ): Promise<Buffer> {
     const cleanFolderId = this.extractFolderId(folderId || config.GDRIVE_FOLDER_ID || '');
 
@@ -269,7 +271,7 @@ export class GoogleDriveScanner {
 
     // 2. Download from Drive API v3
     const oauthToken = await this.getOAuthToken();
-    const apiKey = config.GOOGLE_DRIVE_API_KEY;
+    const apiKey = apiKeyOverride || config.GOOGLE_DRIVE_API_KEY;
     const downloadUrl = `https://www.googleapis.com/drive/v3/files/${video.id}?alt=media&supportsAllDrives=true`;
 
     const headers: Record<string, string> = {};

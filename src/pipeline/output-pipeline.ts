@@ -158,13 +158,16 @@ export class OutputPipelineService {
         );
         // If folder is not yet explicitly in database configs, create an ephemeral pipeline so any folder URL works immediately
         if (activeChannels.length === 0 && targetFid) {
+          const fallbackApiKey = channels.find((c) => c.apiKey)?.apiKey || config.GOOGLE_DRIVE_API_KEY;
+          const fallbackPageId = config.FACEBOOK_PAGE_ID || channels.find((c) => c.pageId)?.pageId || '';
           activeChannels = [
             {
               _id: `adhoc_${targetFid}`,
               name: `Google Drive Folder (${targetFid})`,
               folderUrlOrId: targetFid,
               folderId: targetFid,
-              pageId: config.FACEBOOK_PAGE_ID || '',
+              apiKey: fallbackApiKey,
+              pageId: fallbackPageId,
               autoPostYouTube: config.YOUTUBE_AUTO_UPLOAD,
               autoPostTikTok: config.TIKTOK_AUTO_UPLOAD,
               autoPostTelegram: config.TELEGRAM_AUTO_UPLOAD,
@@ -199,8 +202,10 @@ export class OutputPipelineService {
           continue;
         }
 
+        const channelApiKey = channel.apiKey || config.GOOGLE_DRIVE_API_KEY;
+
         console.log(`\n[OutputPipeline] 📂 Scanning Drive folder for channel: "${channel.name}" (${folderId})...`);
-        const scan = await this.scanner.scanFolder(folderId, channel.postedVideoIds || []);
+        const scan = await this.scanner.scanFolder(folderId, channel.postedVideoIds || [], channelApiKey);
 
         if (scan.error) {
           console.error(`[OutputPipeline] Error scanning folder for "${channel.name}":`, scan.error);
@@ -213,6 +218,17 @@ export class OutputPipelineService {
           continue;
         }
 
+        if (scan.totalVideos === 0) {
+          console.log(`[OutputPipeline] ℹ️ No video files found in "${channel.name}" (${folderId}).`);
+          channelResults.push({
+            channelId: channel._id,
+            channelName: channel.name || 'Channel',
+            publishedTo: {},
+            error: `No video files (.mp4/.mov) found in Google Drive folder ${folderId}.`,
+          });
+          continue;
+        }
+
         const pendingVideos = scan.videos.filter((v) => !v.isPosted);
         console.log(
           `[OutputPipeline] Found ${scan.totalVideos} total videos (${scan.postedCount} posted, ${pendingVideos.length} pending).`
@@ -220,6 +236,12 @@ export class OutputPipelineService {
 
         if (pendingVideos.length === 0) {
           console.log(`[OutputPipeline] ℹ️ All videos in "${channel.name}" have already been published.`);
+          channelResults.push({
+            channelId: channel._id,
+            channelName: channel.name || 'Channel',
+            publishedTo: {},
+            error: `All ${scan.totalVideos} videos in "${channel.name}" have already been published.`,
+          });
           continue;
         }
 
@@ -231,7 +253,7 @@ export class OutputPipelineService {
         // 1. Download video buffer
         let videoBuffer: Buffer;
         try {
-          videoBuffer = await this.scanner.downloadVideoBuffer(targetVideo, folderId);
+          videoBuffer = await this.scanner.downloadVideoBuffer(targetVideo, folderId, channelApiKey);
         } catch (downErr: any) {
           console.error(`[OutputPipeline] Failed to download video buffer: ${downErr.message}`);
           channelResults.push({
@@ -367,7 +389,14 @@ export class OutputPipelineService {
                 .collection<YouTubeChannel>('youtube_channels')
                 .find({ isActive: true })
                 .toArray();
-              const matchedYt = ytChannels.find((ch: YouTubeChannel) => ch.autoUpload);
+              const matchedYt =
+                ytChannels.find(
+                  (ch: YouTubeChannel) =>
+                    ch.autoUpload &&
+                    (ch.targetPageId === channel.pageId ||
+                      ch._id === channel.youtubeChannelId ||
+                      channel.youtubeChannelId === 'all')
+                ) || ytChannels.find((ch: YouTubeChannel) => ch.autoUpload);
               if (matchedYt) {
                 ytClient = YouTubeClient.forChannel(matchedYt);
               }

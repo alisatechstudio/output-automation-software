@@ -99,8 +99,8 @@ export const config: OutputAppConfig = {
   TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,
   TELEGRAM_AUTO_UPLOAD: process.env.TELEGRAM_AUTO_UPLOAD !== 'false',
 
-  CRON_ENABLED: process.env.CRON_ENABLED !== 'false',
-  CRON_SCHEDULE: process.env.CRON_SCHEDULE || '0 */2 * * *',
+  CRON_ENABLED: false, // Internal cron removed. All scheduling is handled externally by cron-job.org
+  CRON_SCHEDULE: process.env.CRON_SCHEDULE || 'external (cron-job.org)',
   DELETE_AFTER_POSTING: process.env.DELETE_AFTER_POSTING !== 'false',
   ORDER_STRATEGY: (process.env.ORDER_STRATEGY as any) || 'oldest_first',
   DATA_DIR: dataDir,

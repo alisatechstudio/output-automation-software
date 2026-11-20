@@ -16,8 +16,10 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
       status: 'ok',
       service: 'Output Automation (Google Drive -> Facebook / YouTube / TikTok / Telegram)',
       databaseConnected: isDbConnected(),
-      cronEnabled: config.CRON_ENABLED,
-      cronSchedule: config.CRON_SCHEDULE,
+      internalCronEnabled: false,
+      cronMode: 'external_webhooks (cron-job.org)',
+      folderCronPattern: '/api/cron/folder/:folderId',
+      globalCronEndpoint: '/api/cron/output',
       driveFolderConfigured: Boolean(config.GDRIVE_FOLDER_ID),
       platformsEnabled: {
         facebook: Boolean(config.FACEBOOK_PAGE_ID && config.FACEBOOK_PAGE_ACCESS_TOKEN),
@@ -29,23 +31,43 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
     });
   });
 
-  app.all(['/api/cron/output', '/api/publish-now', '/api/output/run'], async (req: Request, res: Response) => {
-    const force = req.query.force === 'true' || req.body?.force === true;
-    const channelId = (req.query.channelId || req.body?.channelId) as string | undefined;
-    const folderId = (req.query.folderId || req.body?.folderId) as string | undefined;
+  // External Cron Webhook trigger endpoints for cron-job.org (folder-wise, channel-wise, or global)
+  app.all(
+    [
+      '/api/cron/folder/:folderId',
+      '/api/cron/channel/:channelId',
+      '/api/cron/output',
+      '/api/cron',
+      '/api/publish-now',
+      '/api/output/run',
+    ],
+    async (req: Request, res: Response) => {
+      const force = req.query.force === 'true' || req.body?.force === true;
+      const channelId = (req.params.channelId || req.query.channelId || req.body?.channelId) as string | undefined;
+      const folderId = (req.params.folderId || req.query.folderId || req.body?.folderId) as string | undefined;
 
-    console.log(`[OutputServer] 🚀 Triggering Output Automation broadcast cycle (force=${force})...`);
-    try {
-      const result = await pipeline.runOutputCron({
-        force,
-        channelId,
-        folderId,
-      });
-      res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      console.log(
+        `[OutputServer] 🚀 Triggering Output Automation (cron-job.org webhook, folderId=${folderId || 'all'}, channelId=${channelId || 'all'}, force=${force})...`
+      );
+      try {
+        const result = await pipeline.runOutputCron({
+          force,
+          channelId,
+          folderId,
+        });
+
+        res.json({
+          ...result,
+          trigger: 'external_cron (cron-job.org)',
+          targetFolder: folderId || 'all',
+          targetChannel: channelId || 'all',
+          scheduler: 'cron-job.org',
+        });
+      } catch (err: any) {
+        res.status(500).json({ success: false, error: err.message });
+      }
     }
-  });
+  );
 
   // Diagnostic report for system health & connected integrations
   app.get('/api/diagnostics', async (_req: Request, res: Response) => {

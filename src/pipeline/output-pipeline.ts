@@ -150,17 +150,42 @@ export class OutputPipelineService {
 
       let activeChannels = channels.filter((c) => c.isActive !== false);
       if (options?.channelId) {
-        activeChannels = activeChannels.filter((c) => c._id === options.channelId);
+        activeChannels = channels.filter((c) => c._id === options.channelId);
       } else if (options?.folderId) {
         const targetFid = this.scanner.extractFolderId(options.folderId);
-        activeChannels = activeChannels.filter(
+        activeChannels = channels.filter(
           (c) => this.scanner.extractFolderId(c.folderUrlOrId || c.folderId) === targetFid
         );
+        // If folder is not yet explicitly in database configs, create an ephemeral pipeline so any folder URL works immediately
+        if (activeChannels.length === 0 && targetFid) {
+          activeChannels = [
+            {
+              _id: `adhoc_${targetFid}`,
+              name: `Google Drive Folder (${targetFid})`,
+              folderUrlOrId: targetFid,
+              folderId: targetFid,
+              pageId: config.FACEBOOK_PAGE_ID || '',
+              autoPostYouTube: config.YOUTUBE_AUTO_UPLOAD,
+              autoPostTikTok: config.TIKTOK_AUTO_UPLOAD,
+              autoPostTelegram: config.TELEGRAM_AUTO_UPLOAD,
+              telegramChannelId: config.TELEGRAM_CHANNEL_ID,
+              isActive: true,
+              scheduleIntervalHours: 1,
+              captionStrategy: 'viral_hashtags',
+              orderStrategy: config.ORDER_STRATEGY,
+              postedVideoIds: [],
+              postedVideoNames: [],
+              deleteAfterPosting: config.DELETE_AFTER_POSTING,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ];
+        }
       } else if (options?.pageId && options.pageId !== 'all') {
         activeChannels = activeChannels.filter((c) => c.pageId === options.pageId);
       }
 
-      console.log(`[OutputPipeline] 📤 Evaluating ${activeChannels.length} active broadcast channel(s)...`);
+      console.log(`[OutputPipeline] 📤 Evaluating ${activeChannels.length} active broadcast channel(s) (target folderId=${options?.folderId || 'all'})...`);
 
       const channelResults: ChannelPublishResult[] = [];
       let totalVideosPublished = 0;

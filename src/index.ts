@@ -1,4 +1,3 @@
-import cron from 'node-cron';
 import { OutputPipelineService } from './pipeline/output-pipeline.js';
 import { createOutputServer } from './server/app.js';
 import { initDatabase, closeDatabase } from './db/index.js';
@@ -22,27 +21,13 @@ async function main() {
 
   const server = app.listen(config.PORT, () => {
     logger.info(`Output Automation Server running on http://localhost:${config.PORT}`);
-    logger.info(`Webhook broadcast endpoint: http://localhost:${config.PORT}/api/cron/output`);
+    logger.info(`Folder-wise cron-job.org triggers: http://localhost:${config.PORT}/api/cron/folder/:folderId`);
+    logger.info(`Global cron trigger: http://localhost:${config.PORT}/api/cron/output`);
+    logger.info('Internal cron scheduler has been completely removed in favor of external cron-job.org webhooks.');
   });
-
-  let cronTask: any = null;
-  if (config.CRON_ENABLED) {
-    logger.info(`Starting internal cron job with schedule: "${config.CRON_SCHEDULE}"`);
-    cronTask = cron.schedule(config.CRON_SCHEDULE, async () => {
-      logger.info('[OutputScheduler] ⏰ Cron trigger activated. Running Output Automation...');
-      try {
-        await pipeline.runOutputCron();
-      } catch (err: any) {
-        logger.error({ err: err.message }, '[OutputScheduler] Error during scheduled broadcast');
-      }
-    });
-  } else {
-    logger.info('Internal cron scheduler disabled. Use external webhook (/api/cron/output).');
-  }
 
   const shutdown = async () => {
     logger.info('Shutting down Output Automation cleanly...');
-    if (cronTask) cronTask.stop();
     server.close(async () => {
       await closeDatabase().catch(() => {});
       logger.info('Output Automation stopped.');

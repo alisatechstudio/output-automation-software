@@ -274,16 +274,26 @@ export class OutputPipelineService {
         // Detect language based on the actual video title (do not use channel name, as Bengali videos may be under English channel names)
         const isEnglish = isEnglishText(targetVideo.cleanTitle);
 
-        // Determine if this channel or video is news-related
+        // Determine if this channel or video is news-related (Exclude non-news channels like 'হক কথা', 'Alisa Kids World', 'Alisa Tech Studio')
         const channelNameLower = (channel.name || '').toLowerCase();
         const pageNameLower = (channel.pageName || '').toLowerCase();
+        const isExcludedNonNews =
+          channel.pageId === '1302276172975819' || // হক কথা
+          channelNameLower.includes('হক কথা') ||
+          pageNameLower.includes('হক কথা') ||
+          channel.pageId === '1419972727872040' || // Alisa Kids World
+          channelNameLower.includes('kids') ||
+          pageNameLower.includes('kids') ||
+          channel.pageId === '1268359636369219' || // Alisa Tech Studio
+          channelNameLower.includes('tech');
+
         const isNewsChannel =
-          channelNameLower.includes('news') ||
-          pageNameLower.includes('news') ||
-          channel.category === 'news' ||
-          channel.pageId === '1405135646008133' || // BD News 24/7
-          channel.pageId === '1526917347161119' || // Trending News World
-          channel.pageId === '1302276172975819';   // হক কথা
+          !isExcludedNonNews &&
+          (channelNameLower.includes('news') ||
+            pageNameLower.includes('news') ||
+            channel.category === 'news' ||
+            channel.pageId === '1405135646008133' || // BD News 24/7
+            channel.pageId === '1526917347161119');   // Trending News World
 
         const hashtags = generateGDriveReelHashtags({
           videoTitle: targetVideo.cleanTitle,

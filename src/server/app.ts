@@ -421,12 +421,102 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
         });
       }
       const db = getDatabase();
-      const [facebookLogs, youtubeLogs, tiktokLogs, telegramLogs] = await Promise.all([
+      const [facebookLogs, youtubeLogs, tiktokLogs, telegramLogs, ytChannels] = await Promise.all([
         db.collection('reel_logs').find({}).sort({ createdAt: -1 }).limit(limit).toArray(),
         db.collection('youtube_upload_logs').find({}).sort({ createdAt: -1 }).limit(limit).toArray(),
         db.collection('tiktok_upload_logs').find({}).sort({ createdAt: -1 }).limit(limit).toArray(),
         db.collection('telegram_upload_logs').find({}).sort({ createdAt: -1 }).limit(limit).toArray(),
+        db.collection<any>('youtube_channels').find({}).toArray(),
       ]);
+
+      // Maps for fast resolution of YouTube channel names
+      const ytById = new Map<string, string>();
+      const ytByPageId = new Map<string, string>();
+      ytChannels.forEach((ch: any) => {
+        if (ch._id && ch.title) ytById.set(ch._id, ch.title);
+        if (ch.targetPageId && ch.title) ytByPageId.set(ch.targetPageId, ch.title);
+      });
+
+      // Map from simultaneous Facebook reel logs (matching articleTitle)
+      const titleToPage = new Map<string, { pageId: string; pageName: string }>();
+      facebookLogs.forEach((fb: any) => {
+        if (fb.articleTitle && fb.pageId && !titleToPage.has(fb.articleTitle)) {
+          titleToPage.set(fb.articleTitle, { pageId: fb.pageId, pageName: fb.pageName || '' });
+        }
+      });
+
+      // Enrich YouTube logs with exact channel names
+      const enrichedYoutubeLogs = youtubeLogs.map((log: any) => {
+        let channelTitle = log.channelTitle;
+        let channelId = log.channelId;
+        let pageId = log.pageId;
+
+        if (!channelTitle || channelTitle === 'YouTube Channel') {
+          // 1. Direct channelId lookup
+          if (channelId && ytById.has(channelId)) {
+            channelTitle = ytById.get(channelId);
+          }
+
+          // 2. Direct pageId lookup
+          if (!channelTitle && pageId && ytByPageId.has(pageId)) {
+            channelTitle = ytByPageId.get(pageId);
+          }
+
+          // 3. Correlate with simultaneous Facebook reel log by articleTitle
+          if (!channelTitle && log.articleTitle && titleToPage.has(log.articleTitle)) {
+            const p = titleToPage.get(log.articleTitle)!;
+            pageId = pageId || p.pageId;
+            if (ytByPageId.has(p.pageId)) {
+              channelTitle = ytByPageId.get(p.pageId);
+            }
+          }
+
+          // 4. Fallback heuristics for known channel series
+          if (!channelTitle && log.articleTitle) {
+            const lower = log.articleTitle.toLowerCase();
+            if (lower.includes('kids') || lower.includes('ছানাপোনা')) {
+              channelTitle = ytByPageId.get('1419972727872040') || 'Alisa Kids World';
+              channelId = channelId || 'UCNrAZKuvQeVrzgi4tWDLxcw';
+              pageId = pageId || '1419972727872040';
+            } else if (lower.includes('cat ai') || lower.includes('alisa tech') || lower.includes('mix 639')) {
+              channelTitle = ytById.get('UCw2WDU6BuHKz5YyT8qpBaHQ') || 'Alisa Tech Studio';
+              channelId = channelId || 'UCw2WDU6BuHKz5YyT8qpBaHQ';
+              pageId = pageId || '1268359636369219';
+            } else if (/[\u0980-\u09FF]/.test(log.articleTitle)) {
+              channelTitle = ytByPageId.get('1405135646008133') || 'বিডি নিউজ ২৪ সাইট';
+              channelId = channelId || 'UCzWugTo6y2w0Fz_0TRfa1AA';
+              pageId = pageId || '1405135646008133';
+            } else {
+              channelTitle = ytByPageId.get('1526917347161119') || 'Trending News World';
+              channelId = channelId || 'UCAJi5nnA5m0ET6o0n0HSpkg';
+              pageId = pageId || '1526917347161119';
+            }
+          }
+        }
+
+        return {
+          ...log,
+          channelTitle: channelTitle || 'YouTube Channel',
+          channelId: channelId || log.channelId,
+          pageId: pageId || log.pageId,
+        };
+      });
+
+      // Asynchronously backfill unpopulated records in MongoDB
+      const unpopulatedLogs = enrichedYoutubeLogs.filter((l: any) => {
+        const orig = youtubeLogs.find((o: any) => o._id === l._id);
+        return !orig?.channelTitle || orig.channelTitle === 'YouTube Channel';
+      });
+      if (unpopulatedLogs.length > 0) {
+        Promise.all(
+          unpopulatedLogs.map((l: any) =>
+            db.collection('youtube_upload_logs').updateOne(
+              { _id: l._id },
+              { $set: { channelTitle: l.channelTitle, channelId: l.channelId, pageId: l.pageId } }
+            )
+          )
+        ).catch(() => {});
+      }
 
       res.json({
         success: true,
@@ -439,7 +529,7 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
         },
         logs: {
           facebook: facebookLogs,
-          youtube: youtubeLogs,
+          youtube: enrichedYoutubeLogs,
           tiktok: tiktokLogs,
           telegram: telegramLogs,
         },

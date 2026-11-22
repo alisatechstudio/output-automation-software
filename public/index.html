@@ -1969,6 +1969,38 @@
         });
 
         (currentLogsData.youtube || []).forEach(l => {
+          let ytAccountName = l.channelTitle && l.channelTitle !== 'YouTube Channel' ? l.channelTitle : '';
+          if (!ytAccountName) {
+            if (l.channelId && currentYtChannels && currentYtChannels.length) {
+              const matched = currentYtChannels.find(c => c._id === l.channelId);
+              if (matched?.title) ytAccountName = matched.title;
+            }
+            if (!ytAccountName && l.pageId && currentYtChannels && currentYtChannels.length) {
+              const matched = currentYtChannels.find(c => c.targetPageId === l.pageId);
+              if (matched?.title) ytAccountName = matched.title;
+            }
+            if (!ytAccountName && l.articleTitle && currentLogsData.facebook) {
+              const fbMatch = currentLogsData.facebook.find(f => f.articleTitle === l.articleTitle);
+              if (fbMatch?.pageId && currentYtChannels) {
+                const matched = currentYtChannels.find(c => c.targetPageId === fbMatch.pageId);
+                if (matched?.title) ytAccountName = matched.title;
+              }
+              if (!ytAccountName && fbMatch?.pageName) {
+                if (fbMatch.pageName.includes('BD News') || fbMatch.pageName.includes('বিডি নিউজ')) ytAccountName = 'বিডি নিউজ ২৪ সাইট';
+                else if (fbMatch.pageName.includes('Trending')) ytAccountName = 'Trending News World';
+                else if (fbMatch.pageName.includes('Kids')) ytAccountName = 'Alisa Kids World';
+                else if (fbMatch.pageName.includes('Tech')) ytAccountName = 'Alisa Tech Studio';
+              }
+            }
+            if (!ytAccountName && l.articleTitle) {
+              if (l.articleTitle.includes('ছানাপোনা') || l.articleTitle.toLowerCase().includes('kids')) ytAccountName = 'Alisa Kids World';
+              else if (l.articleTitle.toLowerCase().includes('cat ai') || l.articleTitle.toLowerCase().includes('mix 639')) ytAccountName = 'Alisa Tech Studio';
+              else if (/[\u0980-\u09FF]/.test(l.articleTitle)) ytAccountName = 'বিডি নিউজ ২৪ সাইট';
+              else ytAccountName = 'Trending News World';
+            }
+          }
+          if (!ytAccountName) ytAccountName = 'YouTube Channel';
+
           allUnifiedLogs.push({
             ...l,
             _platform: 'YouTube',
@@ -1976,7 +2008,7 @@
             _platformIcon: '🔴',
             _platformLabel: 'YouTube Short',
             _title: l.articleTitle || 'YouTube Short',
-            _account: l.channelTitle || 'YouTube Channel',
+            _account: ytAccountName,
             _accountId: l.channelId || '',
             _id: l.ytVideoId || l._id,
             _url: l.ytVideoUrl || (l.ytVideoId ? `https://youtube.com/shorts/${l.ytVideoId}` : null),

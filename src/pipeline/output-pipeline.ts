@@ -428,12 +428,13 @@ export class OutputPipelineService {
         if (channel.autoPostYouTube !== false && config.YOUTUBE_AUTO_UPLOAD) {
           try {
             let ytClient = new YouTubeClient();
+            let matchedYt: YouTubeChannel | undefined;
             if (dbAvailable && db) {
               const ytChannels = await db
                 .collection<YouTubeChannel>('youtube_channels')
                 .find({ isActive: true })
                 .toArray();
-              const matchedYt =
+              matchedYt =
                 ytChannels.find(
                   (ch: YouTubeChannel) =>
                     ch.autoUpload &&
@@ -466,9 +467,14 @@ export class OutputPipelineService {
             console.log(`✓ [OutputPipeline] YouTube Short published! (Video ID: ${ytRes.videoId})`);
 
             if (dbAvailable && db) {
+              const resolvedYtTitle = matchedYt?.title || channel.name || 'YouTube Channel';
+              const resolvedYtId = matchedYt?._id || channel.youtubeChannelId || undefined;
               await db.collection<YouTubeUploadLog>('youtube_upload_logs').insertOne({
                 _id: crypto.randomUUID(),
                 articleTitle: targetVideo.cleanTitle,
+                channelId: resolvedYtId,
+                channelTitle: resolvedYtTitle,
+                pageId: channel.pageId || undefined,
                 ytVideoId: ytRes.videoId,
                 ytVideoUrl: ytRes.videoUrl || `https://youtube.com/shorts/${ytRes.videoId}`,
                 status: config.DRY_RUN ? 'dry_run' : 'success',

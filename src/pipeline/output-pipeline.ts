@@ -434,52 +434,68 @@ export class OutputPipelineService {
                 .collection<YouTubeChannel>('youtube_channels')
                 .find({ isActive: true })
                 .toArray();
-              matchedYt =
-                ytChannels.find(
-                  (ch: YouTubeChannel) =>
-                    ch.autoUpload &&
-                    (ch.targetPageId === channel.pageId ||
-                      ch._id === channel.youtubeChannelId ||
-                      channel.youtubeChannelId === 'all')
-                ) || ytChannels.find((ch: YouTubeChannel) => ch.autoUpload);
+
+              // 1. Direct match by configured youtubeChannelId
+              if (channel.youtubeChannelId && channel.youtubeChannelId !== 'all') {
+                matchedYt = ytChannels.find((ch: YouTubeChannel) => ch._id === channel.youtubeChannelId);
+              }
+              // 2. Direct match by linked Facebook pageId
+              if (!matchedYt && channel.pageId) {
+                matchedYt = ytChannels.find((ch: YouTubeChannel) => ch.targetPageId === channel.pageId);
+              }
+              // 3. Match by name similarity
+              if (!matchedYt && channel.name) {
+                const cLower = channel.name.toLowerCase();
+                matchedYt = ytChannels.find((ch: YouTubeChannel) => {
+                  const tLower = ch.title.toLowerCase();
+                  return cLower.includes(tLower) || tLower.includes(cLower);
+                });
+              }
+              // 4. Wildcard match only if explicitly configured as "all"
+              if (!matchedYt && channel.youtubeChannelId === 'all') {
+                matchedYt = ytChannels.find((ch: YouTubeChannel) => ch.autoUpload);
+              }
+
               if (matchedYt) {
                 ytClient = YouTubeClient.forChannel(matchedYt);
               }
             }
 
-            console.log(`[OutputPipeline] 📺 [2/4] Publishing Short to YouTube...`);
-            const ytRes = await ytClient.uploadShort(
-              {
-                videoBuffer,
-                title: targetVideo.cleanTitle,
-                description: caption,
-                tags: fileTags,
-                isEnglish,
-              },
-              config.DRY_RUN
-            );
+            if (matchedYt) {
+              console.log(`[OutputPipeline] 📺 [2/4] Publishing Short to YouTube channel "${matchedYt.title}" (${matchedYt._id})...`);
+              const ytRes = await ytClient.uploadShort(
+                {
+                  videoBuffer,
+                  title: targetVideo.cleanTitle,
+                  description: caption,
+                  tags: fileTags,
+                  isEnglish,
+                },
+                config.DRY_RUN
+              );
 
-            publishStatus.youtube = {
-              success: true,
-              videoId: ytRes.videoId,
-              videoUrl: ytRes.videoUrl || `https://youtube.com/shorts/${ytRes.videoId}`,
-            };
-            console.log(`✓ [OutputPipeline] YouTube Short published! (Video ID: ${ytRes.videoId})`);
+              publishStatus.youtube = {
+                success: true,
+                videoId: ytRes.videoId,
+                videoUrl: ytRes.videoUrl || `https://youtube.com/shorts/${ytRes.videoId}`,
+              };
+              console.log(`✓ [OutputPipeline] YouTube Short published to "${matchedYt.title}"! (Video ID: ${ytRes.videoId})`);
 
-            if (dbAvailable && db) {
-              const resolvedYtTitle = matchedYt?.title || channel.name || 'YouTube Channel';
-              const resolvedYtId = matchedYt?._id || channel.youtubeChannelId || undefined;
-              await db.collection<YouTubeUploadLog>('youtube_upload_logs').insertOne({
-                _id: crypto.randomUUID(),
-                articleTitle: targetVideo.cleanTitle,
-                channelId: resolvedYtId,
-                channelTitle: resolvedYtTitle,
-                pageId: channel.pageId || undefined,
-                ytVideoId: ytRes.videoId,
-                ytVideoUrl: ytRes.videoUrl || `https://youtube.com/shorts/${ytRes.videoId}`,
-                status: config.DRY_RUN ? 'dry_run' : 'success',
-                createdAt: new Date(),
-              });
+              if (dbAvailable && db) {
+                await db.collection<YouTubeUploadLog>('youtube_upload_logs').insertOne({
+                  _id: crypto.randomUUID(),
+                  articleTitle: targetVideo.cleanTitle,
+                  channelId: matchedYt._id,
+                  channelTitle: matchedYt.title,
+                  pageId: channel.pageId || undefined,
+                  ytVideoId: ytRes.videoId,
+                  ytVideoUrl: ytRes.videoUrl || `https://youtube.com/shorts/${ytRes.videoId}`,
+                  status: config.DRY_RUN ? 'dry_run' : 'success',
+                  createdAt: new Date(),
+                });
+              }
+            } else {
+              console.log(`[OutputPipeline] ℹ️ Skipping YouTube upload for "${channel.name}": No matching YouTube channel linked.`);
             }
           } catch (ytErr: any) {
             console.warn(`[OutputPipeline] YouTube upload note: ${ytErr.message}`);

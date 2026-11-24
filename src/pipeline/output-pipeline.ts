@@ -474,14 +474,30 @@ export class OutputPipelineService {
           } catch (fbErr: any) {
             console.error(`[OutputPipeline] Facebook publish failed: ${fbErr.message}`);
             publishStatus.facebook = { success: false, error: fbErr.message };
+
+            if (dbAvailable && db) {
+              try {
+                await db.collection<ReelLog>('reel_logs').insertOne({
+                  _id: crypto.randomUUID(),
+                  articleTitle: targetVideo.cleanTitle,
+                  pageId: fbPageId,
+                  pageName: channel.pageName || channel.name || 'Facebook Page',
+                  fbVideoId: '',
+                  fbPostId: '',
+                  status: 'failed',
+                  errorMessage: fbErr.message,
+                  createdAt: new Date(),
+                } as any);
+              } catch {}
+            }
           }
         }
 
         // 3B. Publish to YouTube (Shorts)
         if (channel.autoPostYouTube !== false && config.YOUTUBE_AUTO_UPLOAD) {
+          let matchedYt: YouTubeChannel | undefined;
           try {
             let ytClient = new YouTubeClient();
-            let matchedYt: YouTubeChannel | undefined;
             if (dbAvailable && db) {
               const ytChannels = await db
                 .collection<YouTubeChannel>('youtube_channels')
@@ -553,6 +569,23 @@ export class OutputPipelineService {
           } catch (ytErr: any) {
             console.warn(`[OutputPipeline] YouTube upload note: ${ytErr.message}`);
             publishStatus.youtube = { success: false, error: ytErr.message };
+
+            if (dbAvailable && db) {
+              try {
+                await db.collection<YouTubeUploadLog>('youtube_upload_logs').insertOne({
+                  _id: crypto.randomUUID(),
+                  articleTitle: targetVideo.cleanTitle,
+                  channelId: matchedYt?._id || channel.youtubeChannelId || undefined,
+                  channelTitle: matchedYt?.title || channel.name || 'YouTube Channel',
+                  pageId: channel.pageId || undefined,
+                  ytVideoId: '',
+                  ytVideoUrl: '',
+                  status: 'failed',
+                  errorMessage: ytErr.message,
+                  createdAt: new Date(),
+                });
+              } catch {}
+            }
           }
         }
 

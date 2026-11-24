@@ -77,7 +77,8 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
       const scanner = pipeline.getScanner();
 
       let driveAuthMode = 'none';
-      if (config.GOOGLE_CLIENT_ID && config.GOOGLE_REFRESH_TOKEN) {
+      const oauthToken = await scanner.getOAuthToken().catch(() => null);
+      if (oauthToken) {
         driveAuthMode = 'oauth2';
       } else if (config.GOOGLE_DRIVE_API_KEY) {
         driveAuthMode = 'api_key';
@@ -222,6 +223,84 @@ export function createOutputServer(pipeline: OutputPipelineService): Express {
       const scanner = pipeline.getScanner();
       const result = await scanner.scanFolder(folderInput, postedIds, apiKeyOverride);
       res.json({ success: true, scan: result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Google Drive Connection & Deletion Credentials Status
+  app.get('/api/gdrive/status', async (_req: Request, res: Response) => {
+    try {
+      const scanner = pipeline.getScanner();
+      const oauthToken = await scanner.getOAuthToken();
+      const hasOAuth = Boolean(oauthToken);
+
+      res.json({
+        success: true,
+        authMode: hasOAuth ? 'oauth2' : (config.GOOGLE_DRIVE_API_KEY ? 'api_key' : 'none'),
+        canDeleteFiles: hasOAuth,
+        note: hasOAuth
+          ? 'Google OAuth active. File deletion / trashing is supported.'
+          : 'Read-only API Key active. An API Key is read-only; Google Drive API requires OAuth 2.0 write authorization to delete or trash files.',
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Update Google Drive OAuth Credentials in Database
+  app.post('/api/gdrive/settings', async (req: Request, res: Response) => {
+    try {
+      const body = req.body || {};
+      const refreshToken = (body.refreshToken || body.GDRIVE_REFRESH_TOKEN || body.GOOGLE_REFRESH_TOKEN || '').trim();
+      const clientId = (body.clientId || body.GOOGLE_CLIENT_ID || '').trim();
+      const clientSecret = (body.clientSecret || body.GOOGLE_CLIENT_SECRET || '').trim();
+
+      if (!isDbConnected()) {
+        return res.status(500).json({ success: false, error: 'Database is not connected.' });
+      }
+
+      const db = getDatabase();
+      const settingsCol = db.collection('settings');
+      const now = new Date();
+
+      if (refreshToken) {
+        await settingsCol.updateOne(
+          { _id: 'GDRIVE_REFRESH_TOKEN' as any },
+          { $set: { key: 'GDRIVE_REFRESH_TOKEN', value: refreshToken, updatedAt: now } },
+          { upsert: true }
+        );
+        await settingsCol.updateOne(
+          { _id: 'GOOGLE_REFRESH_TOKEN' as any },
+          { $set: { key: 'GOOGLE_REFRESH_TOKEN', value: refreshToken, updatedAt: now } },
+          { upsert: true }
+        );
+      }
+
+      if (clientId) {
+        await settingsCol.updateOne(
+          { _id: 'GOOGLE_CLIENT_ID' as any },
+          { $set: { key: 'GOOGLE_CLIENT_ID', value: clientId, updatedAt: now } },
+          { upsert: true }
+        );
+      }
+
+      if (clientSecret) {
+        await settingsCol.updateOne(
+          { _id: 'GOOGLE_CLIENT_SECRET' as any },
+          { $set: { key: 'GOOGLE_CLIENT_SECRET', value: clientSecret, updatedAt: now } },
+          { upsert: true }
+        );
+      }
+
+      const scanner = pipeline.getScanner();
+      const oauthToken = await scanner.getOAuthToken();
+
+      res.json({
+        success: true,
+        message: 'Google Drive settings updated.',
+        canDeleteFiles: Boolean(oauthToken),
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

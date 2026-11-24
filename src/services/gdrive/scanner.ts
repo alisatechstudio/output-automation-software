@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../../config/env.js';
 import { stripCategoryFromTitle } from '../../config/constants.js';
+import { getDatabase, isDbConnected } from '../../db/index.js';
+import { Setting } from '../../db/schema.js';
 
 export interface GDriveVideoItem {
   id: string;
@@ -78,9 +80,49 @@ export class GoogleDriveScanner {
       return this.cachedOAuthToken;
     }
 
-    const clientId = config.GOOGLE_CLIENT_ID;
-    const clientSecret = config.GOOGLE_CLIENT_SECRET;
-    const refreshToken = config.GOOGLE_REFRESH_TOKEN;
+    let clientId = config.GOOGLE_CLIENT_ID;
+    let clientSecret = config.GOOGLE_CLIENT_SECRET;
+    let refreshToken = config.GOOGLE_REFRESH_TOKEN;
+
+    // Dynamically query database settings collection if credentials not present in env
+    if (!refreshToken || !clientId || !clientSecret) {
+      try {
+        if (isDbConnected()) {
+          const db = getDatabase();
+          const settingsCol = db.collection<Setting>('settings');
+
+          const priorityTokenKeys = [
+            'GDRIVE_REFRESH_TOKEN',
+            'GOOGLE_REFRESH_TOKEN',
+            'YOUTUBE_REFRESH_TOKEN',
+          ];
+          for (const tokenKey of priorityTokenKeys) {
+            const doc = await settingsCol.findOne({ _id: tokenKey as any });
+            const val = doc?.value?.trim();
+            if (val && val.startsWith('1//')) {
+              refreshToken = val;
+              break;
+            }
+          }
+
+          if (!clientId) {
+            const idDoc = await settingsCol.findOne({
+              $or: [{ _id: 'GOOGLE_CLIENT_ID' as any }, { _id: 'YOUTUBE_CLIENT_ID' as any }],
+            });
+            if (idDoc?.value) clientId = idDoc.value.trim();
+          }
+
+          if (!clientSecret) {
+            const secDoc = await settingsCol.findOne({
+              $or: [{ _id: 'GOOGLE_CLIENT_SECRET' as any }, { _id: 'YOUTUBE_CLIENT_SECRET' as any }],
+            });
+            if (secDoc?.value) clientSecret = secDoc.value.trim();
+          }
+        }
+      } catch (dbErr: any) {
+        console.warn(`[GoogleDriveScanner] Note reading Drive credentials from DB: ${dbErr.message}`);
+      }
+    }
 
     if (!clientId || !clientSecret || !refreshToken) {
       return null;

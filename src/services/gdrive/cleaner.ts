@@ -36,7 +36,9 @@ export class GoogleDriveCleaner {
     // 2. Remove from Google Drive
     const oauthToken = await this.scanner.getOAuthToken();
     if (!oauthToken) {
-      return { success: false, action, error: 'No Google OAuth token available for file deletion.' };
+      const authHelp = 'No Google OAuth token available for file deletion. Google Drive API requires OAuth 2.0 write authorization (an API key is read-only and cannot delete or trash files).';
+      console.warn(`[GoogleDriveCleaner] ⚠️ ${authHelp}`);
+      return { success: false, action, error: authHelp };
     }
 
     try {

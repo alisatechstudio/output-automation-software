@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Output Automation</title>
+  <meta name="description" content="Privacy Policy and Google API Services User Data Policy compliance for Output Automation.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              bg: '#0a0d14',
+              card: '#101623',
+              border: '#1e293b',
+              accent: '#3b82f6',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0d14; color: #cbd5e1; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    h1, h2, h3 { color: #ffffff; }
+    a { color: #60a5fa; text-decoration: underline; }
+    a:hover { color: #93c5fd; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="flex items-center space-x-2 text-white font-bold text-lg hover:opacity-90 no-underline">
+          <span class="text-2xl">⚡</span>
+          <span>Output Automation</span>
+        </a>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">Privacy Policy</span>
+      </div>
+      <nav class="flex items-center space-x-4 text-xs font-semibold">
+        <a href="/" class="text-slate-400 hover:text-white no-underline transition">Dashboard</a>
+        <a href="/terms" class="text-slate-400 hover:text-white no-underline transition">Terms of Service</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-4xl mx-auto px-6 py-12 flex-grow space-y-10">
+
+    <!-- Hero / Title -->
+    <div class="space-y-3 border-b border-slate-800 pb-8">
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Privacy Policy</h1>
+      <p class="text-sm text-slate-400">
+        Effective Date: <strong class="text-slate-300">November 24, 2026</strong> &nbsp;|&nbsp; 
+        Last Updated: <strong class="text-slate-300">November 24, 2026</strong>
+      </p>
+      <p class="text-base text-slate-300 leading-relaxed pt-2">
+        At <strong>Output Automation</strong> (operated by <strong>Alisa Tech Studio</strong>), we respect your privacy and are committed to protecting the data you share with us. This Privacy Policy outlines how our application connects to third-party services—including <strong>Google Drive</strong>, <strong>YouTube</strong>, <strong>Facebook</strong>, and <strong>Telegram</strong>—and explains our strict data protection and retention practices.
+      </p>
+    </div>
+
+    <!-- Section 1 -->
+    <section class="space-y-3">
+      <h2 class="text-xl font-bold flex items-center space-x-2">
+        <span class="text-blue-500 font-mono text-sm">01.</span>
+        <span>Overview & Core Purpose</span>
+      </h2>
+      <p class="text-sm leading-relaxed text-slate-300">
+        Output Automation is a cloud-based automated pipeline tool designed to help content creators publish video reels and shorts from their cloud storage to their authorized social media channels on an automated schedule.
+      </p>
+      <p class="text-sm leading-relaxed text-slate-300">
+        Our service functions strictly as an automation bridge. We only access external platform APIs at your explicit direction to perform scheduled publishing workflows.
+      </p>
+    </section>
+
+    <!-- Section 2: Google User Data -->
+    <section class="space-y-4 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
+      <h2 class="text-xl font-bold flex items-center space-x-2 text-white">
+        <span class="text-emerald-400 font-mono text-sm">02.</span>
+        <span>Google API User Data & Limited Use Disclosure</span>
+      </h2>
+      
+      <!-- Limited Use Callout Box -->
+      <div class="p-4 rounded-xl bg-blue-950/40 border border-blue-800/60 text-xs sm:text-sm text-blue-200 leading-relaxed space-y-2">
+        <div class="font-bold flex items-center space-x-2 text-blue-300 text-sm">
+          <span>🛡️</span>
+          <span>Google API Services User Data Policy Compliance</span>
+        </div>
+        <p>
+          Output Automation's use and transfer to any other app of information received from Google APIs will adhere to the 
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" class="text-blue-300 font-semibold underline hover:text-white">
+            Google API Services User Data Policy
+          </a>, including the <strong>Limited Use</strong> requirements.
+        </p>
+      </div>
+
+      <div class="space-y-3 text-sm text-slate-300 leading-relaxed">
+        <h3 class="text-base font-semibold text-white pt-2">A. Google Drive API</h3>
+        <ul class="list-disc list-inside space-y-1.5 pl-2 text-xs sm:text-sm text-slate-300">
+          <li><strong>Data Accessed:</strong> File metadata (filenames, file IDs, sizes) and binary media streams of video files (<code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">.mp4</code>, <code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">.mov</code>) located solely within the Google Drive folders you explicitly configure.</li>
+          <li><strong>Purpose:</strong> To download queued video files in order to publish them to your connected social channels, and optionally move processed files to your Google Drive Trash upon successful publication.</li>
+          <li><strong>Storage:</strong> Video files are processed in ephemeral memory buffers during the publish cycle and are <em>not</em> persistently stored on our web application servers.</li>
+        </ul>
+
+        <h3 class="text-base font-semibold text-white pt-2">B. YouTube Data API v3</h3>
+        <ul class="list-disc list-inside space-y-1.5 pl-2 text-xs sm:text-sm text-slate-300">
+          <li><strong>Data Accessed:</strong> Channel title, custom URL, channel ID, and write access via the <code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">https://www.googleapis.com/auth/youtube.upload</code> scope.</li>
+          <li><strong>Purpose:</strong> To upload short-form videos (Shorts) to your authorized YouTube channel, apply video titles, descriptions, and viral hashtags, and retrieve uploaded video IDs for publication audit logging.</li>
+          <li><strong>Limited Use Guarantee:</strong> We do <em>not</em> read your personal emails, search history, private viewing history, or contacts. We only access the YouTube channel you specifically link for upload automation.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 3: Facebook / Meta Data -->
+    <section class="space-y-3">
+      <h2 class="text-xl font-bold flex items-center space-x-2">
+        <span class="text-blue-500 font-mono text-sm">03.</span>
+        <span>Meta / Facebook Platform Data</span>
+      </h2>
+      <p class="text-sm leading-relaxed text-slate-300">
+        When you connect a Facebook Page, Output Automation accesses the Facebook Graph API using your provided Page Access Token.
+      </p>
+      <ul class="list-disc list-inside space-y-1.5 pl-2 text-xs sm:text-sm text-slate-300">
+        <li><strong>Permissions Used:</strong> <code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">pages_show_list</code>, <code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">pages_read_engagement</code>, <code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">pages_manage_posts</code>.</li>
+        <li><strong>Data Collected:</strong> Page ID, Page Name, published video IDs, and post links.</li>
+        <li><strong>Purpose:</strong> To upload Facebook Reels and publish first-comment engagement links on behalf of your Facebook Page.</li>
+      </ul>
+    </section>
+
+    <!-- Section 4: Sharing & Selling Policy -->
+    <section class="space-y-3">
+      <h2 class="text-xl font-bold flex items-center space-x-2">
+        <span class="text-blue-500 font-mono text-sm">04.</span>
+        <span>Zero Data Selling & No Third-Party Transfers</span>
+      </h2>
+      <div class="p-4 bg-slate-900 border border-slate-800 rounded-xl space-y-2 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <p><strong>Output Automation strictly upholds the following privacy guarantees:</strong></p>
+        <ul class="list-disc list-inside space-y-1 pl-2">
+          <li>We <strong>do not sell, rent, or lease</strong> your personal data or API credentials to anyone.</li>
+          <li>We <strong>do not use your data or video content</strong> for advertising, marketing, or behavioral tracking.</li>
+          <li>We <strong>do not use your data</strong> to train artificial intelligence or machine learning models.</li>
+          <li>Your credentials and files are only transmitted directly to the respective official platform endpoints (Google APIs, Meta Graph API, Telegram API).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 5: Security & Storage -->
+    <section class="space-y-3">
+      <h2 class="text-xl font-bold flex items-center space-x-2">
+        <span class="text-blue-500 font-mono text-sm">05.</span>
+        <span>Data Security & Retention</span>
+      </h2>
+      <p class="text-sm leading-relaxed text-slate-300">
+        Your access tokens, refresh tokens, and channel identifiers are stored in a secured, private MongoDB database with encrypted connections (TLS/SSL). Only the serverless backend functions executing your scheduled publication jobs can query these credentials.
+      </p>
+      <p class="text-sm leading-relaxed text-slate-300">
+        Publication audit logs (recording video title, platform post ID, and publication timestamp) are retained in your private database so that you can inspect publication history and verify deduplication.
+      </p>
+    </section>
+
+    <!-- Section 6: Revocation & Deletion -->
+    <section class="space-y-3">
+      <h2 class="text-xl font-bold flex items-center space-x-2">
+        <span class="text-blue-500 font-mono text-sm">06.</span>
+        <span>User Rights, Revocation & Data Deletion</span>
+      </h2>
+      <p class="text-sm leading-relaxed text-slate-300">
+        You retain full control over your connected accounts and credentials:
+      </p>
+      <ul class="list-disc list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-300">
+        <li>
+          <strong>In-App Deletion:</strong> You can delete any connected YouTube channel, Facebook Page, or Google Drive folder configuration at any time directly through the dashboard interface.
+        </li>
+        <li>
+          <strong>Google Account Revocation:</strong> You can revoke Output Automation's access to your Google Account at any time via 
+          <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" class="font-medium">Google Account Security Permissions</a>.
+        </li>
+        <li>
+          <strong>Meta / Facebook Account Revocation:</strong> You can remove our integration's permissions at any time via your 
+          <a href="https://www.facebook.com/settings?tab=business_tools" target="_blank" rel="noopener noreferrer" class="font-medium">Facebook Business Integrations Settings</a>.
+        </li>
+        <li>
+          <strong>Full Account Data Deletion Request:</strong> If you wish to permanently purge all your configurations, credentials, and audit logs from our databases, please contact us at <a href="mailto:contact@alisatechstudio.com">contact@alisatechstudio.com</a>, and your request will be processed within 48 hours.
+        </li>
+      </ul>
+    </section>
+
+    <!-- Section 7: Contact Information -->
+    <section class="space-y-3 border-t border-slate-800 pt-8">
+      <h2 class="text-xl font-bold flex items-center space-x-2">
+        <span class="text-blue-500 font-mono text-sm">07.</span>
+        <span>Contact Us</span>
+      </h2>
+      <p class="text-sm leading-relaxed text-slate-300">
+        If you have questions, concerns, or requests regarding this Privacy Policy or our compliance with Google API User Data Policies, please reach out to us:
+      </p>
+      <div class="p-4 bg-slate-900 border border-slate-800 rounded-xl space-y-1 text-xs sm:text-sm font-mono text-slate-300">
+        <div><strong>Organization:</strong> Alisa Tech Studio</div>
+        <div><strong>Service:</strong> Output Automation Software</div>
+        <div><strong>Email:</strong> <a href="mailto:contact@alisatechstudio.com" class="text-blue-400">contact@alisatechstudio.com</a></div>
+        <div><strong>Website:</strong> <a href="https://output-automation-software.vercel.app" class="text-blue-400">https://output-automation-software.vercel.app</a></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 bg-slate-950 py-8 px-6 text-center text-xs text-slate-500 space-y-2">
+    <div class="flex items-center justify-center space-x-4">
+      <a href="/" class="hover:text-slate-300 no-underline">Dashboard</a>
+      <span>•</span>
+      <a href="/privacy" class="text-slate-300 font-semibold no-underline">Privacy Policy</a>
+      <span>•</span>
+      <a href="/terms" class="hover:text-slate-300 no-underline">Terms of Service</a>
+      <span>•</span>
+      <a href="mailto:contact@alisatechstudio.com" class="hover:text-slate-300 no-underline">Support</a>
+    </div>
+    <p>© 2026 Alisa Tech Studio. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>

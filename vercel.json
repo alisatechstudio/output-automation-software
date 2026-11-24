@@ -23,6 +23,22 @@
     {
       "source": "/dashboard",
       "destination": "/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/terms-of-service",
+      "destination": "/terms.html"
     }
   ]
 }

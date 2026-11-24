@@ -53,7 +53,9 @@ export class OutputPipelineService {
   private groupShareService: GroupShareService;
   private tikTokClient: TikTokClient;
   private telegramPublisher: TelegramPublisher;
-  private isRunning: boolean = false;
+  private activeFolders: Set<string> = new Set<string>();
+  private activeChannels: Set<string> = new Set<string>();
+  private isGlobalRunning: boolean = false;
 
   constructor() {
     this.scanner = new GoogleDriveScanner();
@@ -76,6 +78,14 @@ export class OutputPipelineService {
     return this.telegramPublisher;
   }
 
+  public isJobRunning(folderId?: string): boolean {
+    if (folderId) {
+      const clean = this.scanner.extractFolderId(folderId) || folderId.trim().toLowerCase();
+      return this.activeFolders.has(clean) || this.isGlobalRunning;
+    }
+    return this.isGlobalRunning || this.activeFolders.size > 0 || this.activeChannels.size > 0;
+  }
+
   public async runOutputCron(options?: {
     channelId?: string;
     folderId?: string;
@@ -83,19 +93,56 @@ export class OutputPipelineService {
     force?: boolean;
   }): Promise<OutputCronResult> {
     const startTime = Date.now();
-    if (this.isRunning && !options?.force) {
-      return {
-        success: false,
-        timestamp: new Date().toISOString(),
-        durationMs: 0,
-        channelsProcessed: 0,
-        totalVideosPublished: 0,
-        results: [],
-        error: 'Output pipeline execution already in progress.',
-      };
+    const folderLockKey = options?.folderId
+      ? (this.scanner.extractFolderId(options.folderId) || options.folderId.trim().toLowerCase())
+      : null;
+    const channelLockKey = options?.channelId?.trim() || null;
+
+    if (!options?.force) {
+      if (folderLockKey) {
+        if (this.activeFolders.has(folderLockKey) || this.isGlobalRunning) {
+          return {
+            success: false,
+            timestamp: new Date().toISOString(),
+            durationMs: 0,
+            channelsProcessed: 0,
+            totalVideosPublished: 0,
+            results: [],
+            error: `Output pipeline for folder "${folderLockKey}" is already in progress.`,
+          };
+        }
+      } else if (channelLockKey) {
+        if (this.activeChannels.has(channelLockKey) || this.isGlobalRunning) {
+          return {
+            success: false,
+            timestamp: new Date().toISOString(),
+            durationMs: 0,
+            channelsProcessed: 0,
+            totalVideosPublished: 0,
+            results: [],
+            error: `Output pipeline for channel "${channelLockKey}" is already in progress.`,
+          };
+        }
+      } else if (this.isGlobalRunning || this.activeFolders.size > 0 || this.activeChannels.size > 0) {
+        return {
+          success: false,
+          timestamp: new Date().toISOString(),
+          durationMs: 0,
+          channelsProcessed: 0,
+          totalVideosPublished: 0,
+          results: [],
+          error: 'Output pipeline execution already in progress.',
+        };
+      }
     }
 
-    this.isRunning = true;
+    if (folderLockKey) {
+      this.activeFolders.add(folderLockKey);
+    } else if (channelLockKey) {
+      this.activeChannels.add(channelLockKey);
+    } else {
+      this.isGlobalRunning = true;
+    }
     try {
       if (!isDbConnected()) {
         try {
@@ -194,6 +241,12 @@ export class OutputPipelineService {
       let totalVideosPublished = 0;
 
       for (const channel of activeChannels) {
+        // Safe timeout guard for global multi-channel runs: stop before hitting Vercel 60s hard timeout
+        if (!options?.folderId && !options?.channelId && Date.now() - startTime > 45000) {
+          console.warn(`[OutputPipeline] ⏱️ Approaching serverless execution limit (${Date.now() - startTime}ms). Stopping batch safely to prevent 504 timeout.`);
+          break;
+        }
+
         const folderId = this.scanner.extractFolderId(
           channel.folderUrlOrId || channel.folderId || config.GDRIVE_FOLDER_ID || ''
         );
@@ -676,7 +729,13 @@ export class OutputPipelineService {
         error: err.message,
       };
     } finally {
-      this.isRunning = false;
+      if (folderLockKey) {
+        this.activeFolders.delete(folderLockKey);
+      } else if (channelLockKey) {
+        this.activeChannels.delete(channelLockKey);
+      } else {
+        this.isGlobalRunning = false;
+      }
     }
   }
 }

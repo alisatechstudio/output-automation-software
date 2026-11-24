@@ -197,7 +197,12 @@ export class OutputPipelineService {
 
       let activeChannels = channels.filter((c) => c.isActive !== false);
       if (options?.channelId) {
-        activeChannels = channels.filter((c) => c._id === options.channelId);
+        activeChannels = channels.filter(
+          (c) =>
+            c._id === options.channelId ||
+            c.youtubeChannelId === options.channelId ||
+            c.pageId === options.channelId
+        );
       } else if (options?.folderId) {
         const targetFid = this.scanner.extractFolderId(options.folderId);
         activeChannels = channels.filter(
